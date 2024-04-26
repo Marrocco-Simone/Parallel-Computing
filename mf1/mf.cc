@@ -10,8 +10,9 @@ float median(vector<float> &v)
   {
     int k = n / 2;
     nth_element(v.begin(), v.begin() + k, v.end());
+    float middle = v[k];
     nth_element(v.begin(), v.begin() + k - 1, v.end());
-    return (v[k] + v[k - 1]) / 2;
+    return (middle + v[k - 1]) / 2;
   }
   else
   {
