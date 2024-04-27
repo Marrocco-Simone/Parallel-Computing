@@ -1,6 +1,6 @@
 #include <vector>
 #include <cmath>
-#define ll vector<long double>
+#define ll vector<double>
 using namespace std;
 
 /*
@@ -17,8 +17,8 @@ void correlate(int ny, int nx, const float *data, float *result)
   // ll transposed(nx * ny, 0);
   for (int j = 0; j < ny; j++)
   {
-    long double mean = 0.0;
-    long double magnitude = 0.0;
+    double mean = 0.0;
+    double magnitude = 0.0;
 
     for (int i = 0; i < nx; i++)
       mean += data[i + j * nx] / nx;
@@ -28,7 +28,7 @@ void correlate(int ny, int nx, const float *data, float *result)
       normalized[i + j * nx] = (data[i + j * nx] - mean);
       magnitude += normalized[i + j * nx] * normalized[i + j * nx];
     }
-    magnitude = sqrtl(magnitude);
+    magnitude = sqrtf(magnitude);
 
     for (int i = 0; i < nx; i++)
     {
@@ -41,7 +41,7 @@ void correlate(int ny, int nx, const float *data, float *result)
   {
     for (int i = j; i < ny; i++)
     {
-      long double sum = 0.0;
+      double sum = 0.0;
       for (int k = 0; k < nx; ++k)
       {
         // sum += normalized[k + i * nx] * transposed[j + k * ny];
