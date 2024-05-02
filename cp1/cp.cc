@@ -28,7 +28,7 @@ void correlate(int ny, int nx, const float *data, float *result)
       normalized[i + j * nx] = (data[i + j * nx] - mean);
       magnitude += normalized[i + j * nx] * normalized[i + j * nx];
     }
-    magnitude = sqrtf(magnitude);
+    magnitude = sqrtl(magnitude);
 
     for (int i = 0; i < nx; i++)
     {
