@@ -1,6 +1,9 @@
 #include <vector>
 #include <cmath>
 #define ll vector<double>
+typedef double double4_t __attribute__((vector_size(4 * sizeof(double))));
+#define ll4_t vector<double4_t>
+
 using namespace std;
 
 /*
@@ -14,7 +17,6 @@ This is the function you need to implement. Quick reference:
 void correlate(int ny, int nx, const float *data, float *result)
 {
   ll normalized(nx * ny, 0);
-  // ll transposed(nx * ny, 0);
   for (int j = 0; j < ny; j++)
   {
     double mean = 0.0;
@@ -33,7 +35,6 @@ void correlate(int ny, int nx, const float *data, float *result)
     for (int i = 0; i < nx; i++)
     {
       normalized[i + j * nx] /= magnitude;
-      // transposed[j + i * ny] = normalized[i + j * nx];
     }
   }
 
@@ -41,13 +42,42 @@ void correlate(int ny, int nx, const float *data, float *result)
   {
     for (int i = j; i < ny; i++)
     {
-      double sum = 0.0;
-      for (int k = 0; k < nx; ++k)
+      // * instruction level parallelism
+      // double sum1 = 0.0;
+      // double sum2 = 0.0;
+      // double sum3 = 0.0;
+      // double sum4 = 0.0;
+      double4_t sum = {0.0, 0.0, 0.0, 0.0};
+      int k = 0;
+      while (k < nx - 4)
       {
-        // sum += normalized[k + i * nx] * transposed[j + k * ny];
-        sum += normalized[k + i * nx] * normalized[k + j * nx];
+        // sum1 += normalized[k + 0 + i * nx] * normalized[k + 0 + j * nx];
+        // sum2 += normalized[k + 1 + i * nx] * normalized[k + 1 + j * nx];
+        // sum3 += normalized[k + 2 + i * nx] * normalized[k + 2 + j * nx];
+        // sum4 += normalized[k + 3 + i * nx] * normalized[k + 3 + j * nx];
+        double4_t ni = {
+            normalized[k + 0 + i * nx],
+            normalized[k + 1 + i * nx],
+            normalized[k + 2 + i * nx],
+            normalized[k + 3 + i * nx],
+        };
+        double4_t nj = {
+            normalized[k + 0 + j * nx],
+            normalized[k + 1 + j * nx],
+            normalized[k + 2 + j * nx],
+            normalized[k + 3 + j * nx],
+        };
+        sum += ni * nj;
+        k += 4;
       }
-      result[i + j * ny] = sum;
+      while (k < nx)
+      {
+        // sum1 += normalized[k + 0 + i * nx] * normalized[k + 0 + j * nx];
+        sum[0] += normalized[k + 0 + i * nx] * normalized[k + 0 + j * nx];
+        k++;
+      }
+      // result[i + j * ny] = sum1 + sum2 + sum3 + sum4;
+      result[i + j * ny] = sum[0] + sum[1] + sum[2] + sum[3];
     }
   }
 }
