@@ -10,27 +10,30 @@ typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 
 using namespace std;
 
-/** parallelizable by j */
-void normalize_row(int j, int nx, int nnx, const float *data, ll4_t &normalized)
+void normalize_rows(int ny, int nx, int nnx, const float *data, ll4_t &normalized)
 {
-  double mean = 0.0;
-  double magnitude = 0.0;
-
-  for (int i = 0; i < nx; i++)
-    mean += data[i + j * nx] / nx;
-
-  for (int i = 0; i < nx; i++)
+#pragma omp parallel for
+  for (int j = 0; j < ny; j++)
   {
-    int ii = i % N;
-    double v = (data[i + j * nx] - mean);
-    normalized[i / N + j * nnx][ii] = v;
-    magnitude += v * v;
-  }
-  magnitude = sqrtl(magnitude);
+    double mean = 0.0;
+    double magnitude = 0.0;
 
-  for (int i = 0; i < nnx; i++)
-  {
-    normalized[i + j * nnx] /= magnitude;
+    for (int i = 0; i < nx; i++)
+      mean += data[i + j * nx] / nx;
+
+    for (int i = 0; i < nx; i++)
+    {
+      int ii = i % N;
+      double v = (data[i + j * nx] - mean);
+      normalized[i / N + j * nnx][ii] = v;
+      magnitude += v * v;
+    }
+    magnitude = sqrtl(magnitude);
+
+    for (int i = 0; i < nnx; i++)
+    {
+      normalized[i + j * nnx] /= magnitude;
+    }
   }
 }
 
@@ -47,33 +50,37 @@ void correlate(int ny, int nx, const float *data, float *result)
   int next_mul_of_N = nx + (N - nx % N) % N;
   int nnx = next_mul_of_N / N;
   ll4_t normalized(ny * nnx);
-#pragma omp parallel for
-  for (int j = 0; j < ny; j++)
-    normalize_row(j, nx, nnx, data, normalized);
+  normalize_rows(ny, nx, nnx, data, normalized);
 
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)
   {
-    for (int i = j; i < ny; i++)
+    int i = j;
+    for (; i < ny - S; i += S)
     {
       ll4_t sum(S);
-      int k = 0;
-      for (; k < nnx - S; k += S)
-      {
-        for (int kk = 0; kk < S; kk++)
-          sum[kk] += normalized[k + kk + i * nnx] * normalized[k + kk + j * nnx];
-      }
-      for (; k < nnx; k++)
-      {
-        sum[0] += normalized[k + i * nnx] * normalized[k + j * nnx];
-      }
+      for (int k = 0; k < nnx; k++)
+        for (int s = 0; s < S; s++)
+          sum[s] += normalized[k + (i + s) * nnx] * normalized[k + j * nnx];
 
-      double4_t cumsum = {0.0};
-      for (int ii = 0; ii < S; ii++)
+      for (int s = 0; s < S; s++)
       {
-        cumsum += sum[ii];
+        double cumsum = 0.0;
+        for (int h = 0; h < N; h++)
+          cumsum += sum[s][h];
+        result[i + s + j * ny] = cumsum;
       }
-      result[i + j * ny] = cumsum[0] + cumsum[1] + cumsum[2] + cumsum[3];
+    }
+    for (; i < ny; i++)
+    {
+      double4_t sum = {0.0};
+      for (int k = 0; k < nnx; k++)
+        sum += normalized[k + i * nnx] * normalized[k + j * nnx];
+
+      double cumsum = 0.0;
+      for (int h = 0; h < N; h++)
+        cumsum += sum[h];
+      result[i + j * ny] = cumsum;
     }
   }
 }
