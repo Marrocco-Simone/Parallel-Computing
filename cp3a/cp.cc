@@ -1,10 +1,38 @@
 #include <vector>
 #include <cmath>
 #define ll vector<double>
-typedef double double4_t __attribute__((vector_size(4 * sizeof(double))));
+/** parameter for vectoring operations - dont touch, dependeant on double implementation */
+#define N 4
+/** parameter for instruction parallelism */
+#define S 4
+typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 #define ll4_t vector<double4_t>
 
 using namespace std;
+
+/** parallelizable by j */
+void normalize_row(int j, int nx, int nnx, const float *data, ll4_t &normalized)
+{
+  double mean = 0.0;
+  double magnitude = 0.0;
+
+  for (int i = 0; i < nx; i++)
+    mean += data[i + j * nx] / nx;
+
+  for (int i = 0; i < nx; i++)
+  {
+    int ii = i % N;
+    double v = (data[i + j * nx] - mean);
+    normalized[i / N + j * nnx][ii] = v;
+    magnitude += v * v;
+  }
+  magnitude = sqrtl(magnitude);
+
+  for (int i = 0; i < nnx; i++)
+  {
+    normalized[i + j * nnx] /= magnitude;
+  }
+}
 
 /*
 This is the function you need to implement. Quick reference:
@@ -16,54 +44,32 @@ This is the function you need to implement. Quick reference:
 */
 void correlate(int ny, int nx, const float *data, float *result)
 {
-  int next_mul_of_4 = nx + (4 - nx % 4) % 4;
-  int nnx = next_mul_of_4 / 4;
+  int next_mul_of_N = nx + (N - nx % N) % N;
+  int nnx = next_mul_of_N / N;
   ll4_t normalized(ny * nnx);
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)
-  {
-    double mean = 0.0;
-    double magnitude = 0.0;
-
-    for (int i = 0; i < nx; i++)
-      mean += data[i + j * nx] / nx;
-
-    for (int i = 0; i < nx; i++)
-    {
-      int ii = i % 4;
-      double v = (data[i + j * nx] - mean);
-      normalized[i / 4 + j * nnx][ii] = v;
-      magnitude += v * v;
-    }
-    magnitude = sqrtl(magnitude);
-
-    for (int i = 0; i < nnx; i++)
-    {
-      normalized[i + j * nnx] /= magnitude;
-    }
-  }
+    normalize_row(j, nx, nnx, data, normalized);
 
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)
   {
     for (int i = j; i < ny; i++)
     {
-      ll4_t sum(4);
+      ll4_t sum(S);
       int k = 0;
-      while (k < nnx - 4)
+      for (; k < nnx - S; k += S)
       {
-        for (int kk = 0; kk < 4; kk++)
+        for (int kk = 0; kk < S; kk++)
           sum[kk] += normalized[k + kk + i * nnx] * normalized[k + kk + j * nnx];
-        k += 4;
       }
-      while (k < nnx)
+      for (; k < nnx; k++)
       {
         sum[0] += normalized[k + i * nnx] * normalized[k + j * nnx];
-        k++;
       }
 
       double4_t cumsum = {0.0};
-      for (int ii = 0; ii < 4; ii++)
+      for (int ii = 0; ii < S; ii++)
       {
         cumsum += sum[ii];
       }
