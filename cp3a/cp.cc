@@ -3,7 +3,7 @@
 #define ll vector<double>
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
-#define S 2
+#define S 16
 typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 #define ll4_t vector<double4_t>
 
@@ -75,25 +75,23 @@ void correlate(int ny, int nx, const float *data, float *result)
       }
       else
       {
-        ll4_t sum(4);
+        ll4_t sum(S * S);
         for (int k = 0; k < nnx; k++)
         {
-          sum[0] += normalized[k + i * nnx] * normalized[k + j * nnx];
-          sum[1] += normalized[k + (i + 1) * nnx] * normalized[k + j * nnx];
-          sum[2] += normalized[k + i * nnx] * normalized[k + (j + 1) * nnx];
-          sum[3] += normalized[k + (i + 1) * nnx] * normalized[k + (j + 1) * nnx];
+          for (int s1 = 0; s1 < S; s1++)
+            for (int s2 = 0; s2 < S; s2++)
+              sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
         }
 
-        double4_t cumsum = {0.0};
-        for (int g = 0; g < 4; g++)
+        ll cumsum(S * S, 0.0);
+        for (int s = 0; s < S * S; s++)
           for (int h = 0; h < N; h++)
-            cumsum[g] += sum[g][h];
+            cumsum[s] += sum[s][h];
 
-        result[i + j * ny] = cumsum[0];
-        result[(i + 1) + j * ny] = cumsum[1];
-        result[i + (j + 1) * ny] = cumsum[2];
-        result[(i + 1) + (j + 1) * ny] = cumsum[3];
-        i++;
+        for (int s1 = 0; s1 < S; s1++)
+          for (int s2 = 0; s2 < S; s2++)
+            result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
+        i += S - 1;
       }
     }
 }
