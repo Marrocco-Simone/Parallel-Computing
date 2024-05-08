@@ -3,8 +3,6 @@
 #define ll vector<double>
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
-/** parameter for instruction parallelism */
-#define S 4
 typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 #define ll4_t vector<double4_t>
 
@@ -54,24 +52,7 @@ void correlate(int ny, int nx, const float *data, float *result)
 
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)
-  {
-    int i = j;
-    for (; i < ny - S; i += S)
-    {
-      ll4_t sum(S);
-      for (int k = 0; k < nnx; k++)
-        for (int s = 0; s < S; s++)
-          sum[s] += normalized[k + (i + s) * nnx] * normalized[k + j * nnx];
-
-      for (int s = 0; s < S; s++)
-      {
-        double cumsum = 0.0;
-        for (int h = 0; h < N; h++)
-          cumsum += sum[s][h];
-        result[i + s + j * ny] = cumsum;
-      }
-    }
-    for (; i < ny; i++)
+    for (int i = j; i < ny; i++)
     {
       double4_t sum = {0.0};
       for (int k = 0; k < nnx; k++)
@@ -82,5 +63,4 @@ void correlate(int ny, int nx, const float *data, float *result)
         cumsum += sum[h];
       result[i + j * ny] = cumsum;
     }
-  }
 }
