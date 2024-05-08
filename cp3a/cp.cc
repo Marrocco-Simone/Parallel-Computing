@@ -3,6 +3,7 @@
 #define ll vector<double>
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
+/** parameter for multiple calculations between rows */
 #define S 16
 typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 #define ll4_t vector<double4_t>
@@ -36,6 +37,14 @@ void normalize_rows(int ny, int nx, int nnx, const float *data, ll4_t &normalize
   }
 }
 
+void set_result_to_zero(int ny, float *result)
+{
+#pragma omp parallel for
+  for (int j = 0; j < ny; j++)
+    for (int i = j; i < ny; i++)
+      result[i + j * ny] = 0;
+}
+
 /*
 This is the function you need to implement. Quick reference:
 - input rows: 0 <= y < ny
@@ -50,20 +59,18 @@ void correlate(int ny, int nx, const float *data, float *result)
   int nnx = next_mul_of_N / N;
   ll4_t normalized(ny * nnx);
   normalize_rows(ny, nx, nnx, data, normalized);
-
-#pragma omp parallel for
-  for (int j = 0; j < ny; j++)
-    for (int i = j; i < ny; i++)
-      result[i + j * ny] = 0;
+  set_result_to_zero(ny, result);
 
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)
     for (int i = j; i < ny; i++)
     {
+      // * if calculated from a previous cycle, skip
       if (result[i + j * ny])
         continue;
       if (i - j < S || j > ny - S || i > ny - S)
       {
+        // * edge cases, do the simpler version
         double4_t sum = {0.0};
         for (int k = 0; k < nnx; k++)
           sum += normalized[k + i * nnx] * normalized[k + j * nnx];
