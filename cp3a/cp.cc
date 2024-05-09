@@ -82,12 +82,13 @@ void correlate(int ny, int nx, const float *data, float *result)
 
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)
+  {
     for (int i = j; i < ny; i++)
     {
       // * if calculated from a previous cycle, skip
       if (result[i + j * ny])
         continue;
-      if (i - j < S || j > ny - S || i > ny - S)
+      if (j > ny - S || i > ny - S)
       {
         // * edge cases, do the simpler version
         double4_t sum = {0.0};
@@ -120,4 +121,5 @@ void correlate(int ny, int nx, const float *data, float *result)
         i += S - 1;
       }
     }
+  }
 }
