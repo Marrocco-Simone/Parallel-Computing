@@ -1,6 +1,6 @@
 #include <vector>
 #include <cmath>
-// #include <algorithm>
+#include <algorithm>
 // #include <immintrin.h>
 // #include <tuple>
 #define ll vector<double>
@@ -45,7 +45,7 @@ void set_result_to_zero(int ny, float *result)
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)
     for (int i = j; i < ny; i++)
-      result[i + j * ny] = 0;
+      result[i + j * ny] = 0.0;
 }
 
 // void get_rows_order(int ny, vector<tuple<int, int, int>> &rows)
@@ -81,45 +81,25 @@ void correlate(int ny, int nx, const float *data, float *result)
   // get_rows_order(ny, rows);
 
 #pragma omp parallel for
-  for (int j = 0; j < ny; j++)
-  {
-    for (int i = j; i < ny; i++)
+  for (int j = 0; j < ny; j += S)
+    for (int i = j; i < ny; i += S)
     {
-      // * if calculated from a previous cycle, skip
-      if (result[i + j * ny])
-        continue;
-      if (j > ny - S || i > ny - S)
-      {
-        // * edge cases, do the simpler version
-        double4_t sum = {0.0};
-        for (int k = 0; k < nnx; k++)
-          sum += normalized[k + i * nnx] * normalized[k + j * nnx];
+      int s1_limit = min(S, ny - j);
+      int s2_limit = min(S, ny - i);
 
-        double cumsum = 0.0;
+      ll4_t sum(S * S);
+      for (int k = 0; k < nnx; k++)
+        for (int s1 = 0; s1 < s1_limit; s1++)
+          for (int s2 = 0; s2 < s2_limit; s2++)
+            sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
+
+      ll cumsum(S * S, 0.0);
+      for (int s = 0; s < S * S; s++)
         for (int h = 0; h < N; h++)
-          cumsum += sum[h];
-        result[i + j * ny] = cumsum;
-      }
-      else
-      {
-        ll4_t sum(S * S);
-        for (int k = 0; k < nnx; k++)
-        {
-          for (int s1 = 0; s1 < S; s1++)
-            for (int s2 = 0; s2 < S; s2++)
-              sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
-        }
+          cumsum[s] += sum[s][h];
 
-        ll cumsum(S * S, 0.0);
-        for (int s = 0; s < S * S; s++)
-          for (int h = 0; h < N; h++)
-            cumsum[s] += sum[s][h];
-
-        for (int s1 = 0; s1 < S; s1++)
-          for (int s2 = 0; s2 < S; s2++)
-            result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
-        i += S - 1;
-      }
+      for (int s1 = 0; s1 < s1_limit; s1++)
+        for (int s2 = 0; s2 < s2_limit; s2++)
+          result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
     }
-  }
 }
