@@ -7,7 +7,7 @@
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
 /** parameter for multiple calculations between rows */
-#define S 16
+#define S 8
 #define infinity 2147483647
 typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 #define ll4_t vector<double4_t>
@@ -57,7 +57,7 @@ void get_rows_order(int ny, vector<tuple<int, int, int>> &rows)
       int ji = _pdep_u32(j, 0x55555555) | _pdep_u32(i, 0xAAAAAAAA);
       rows.push_back(make_tuple(ji, j, i));
     }
-  // sort(rows.begin(), rows.end());
+  sort(rows.begin(), rows.end());
 }
 
 /*
