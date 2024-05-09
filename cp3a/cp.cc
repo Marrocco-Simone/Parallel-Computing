@@ -51,11 +51,13 @@ void set_result_to_zero(int ny, float *result)
 
 void get_rows_order(int ny, vector<tuple<int, int, int>> &rows)
 {
+  int count = 0;
   for (int j = 0; j < ny; j += S)
     for (int i = j; i < ny; i += S)
     {
       int ji = _pdep_u32(j, 0x55555555) | _pdep_u32(i, 0xAAAAAAAA);
-      rows.push_back(make_tuple(ji, j, i));
+      rows[count] = make_tuple(ji, j, i);
+      count++;
     }
   sort(rows.begin(), rows.end());
 }
@@ -77,7 +79,9 @@ void correlate(int ny, int nx, const float *data, float *result)
   ll4_t normalized(ny * nnx);
   normalize_rows(ny, nx, nnx, data, normalized);
 
-  vector<tuple<int, int, int>> rows;
+  int p = (ny - 1) / S;
+  int dim = 0.5 * (p * p) + 1.5 * (p) + 1;
+  vector<tuple<int, int, int>> rows(dim);
   get_rows_order(ny, rows);
 
 #pragma omp parallel for
