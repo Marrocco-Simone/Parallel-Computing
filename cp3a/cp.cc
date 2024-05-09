@@ -1,5 +1,8 @@
 #include <vector>
 #include <cmath>
+// #include <algorithm>
+// #include <immintrin.h>
+// #include <tuple>
 #define ll vector<double>
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
@@ -45,6 +48,18 @@ void set_result_to_zero(int ny, float *result)
       result[i + j * ny] = 0;
 }
 
+// void get_rows_order(int ny, vector<tuple<int, int, int>> &rows)
+// {
+// #pragma omp parallel for
+//   for (int ja = 0; ja < ny; ++ja)
+//     for (int ia = 0; ia < ny; ++ia)
+//     {
+//       int jia = _pdep_u32(ja, 0x55555555) | _pdep_u32(ia, 0xAAAAAAAA);
+//       rows[ja * ny + ia] = std::make_tuple(jia, ja, ia);
+//     }
+//   sort(rows.begin(), rows.end());
+// }
+
 /*
 This is the function you need to implement. Quick reference:
 - input rows: 0 <= y < ny
@@ -55,11 +70,15 @@ This is the function you need to implement. Quick reference:
 */
 void correlate(int ny, int nx, const float *data, float *result)
 {
+  set_result_to_zero(ny, result);
+
   int next_mul_of_N = nx + (N - nx % N) % N;
   int nnx = next_mul_of_N / N;
   ll4_t normalized(ny * nnx);
   normalize_rows(ny, nx, nnx, data, normalized);
-  set_result_to_zero(ny, result);
+
+  // vector<tuple<int, int, int>> rows(ny * ny);
+  // get_rows_order(ny, rows);
 
 #pragma omp parallel for
   for (int j = 0; j < ny; j++)

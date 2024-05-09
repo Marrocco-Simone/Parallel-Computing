@@ -5,6 +5,9 @@
     "random": "cpp",
     "queue": "cpp",
     "stack": "cpp",
-    "cstdio": "cpp"
+    "cstdio": "cpp",
+    "algorithm": "cpp",
+    "tuple": "cpp",
+    "cmath": "cpp"
   }
 }
