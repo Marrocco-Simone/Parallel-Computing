@@ -1,13 +1,14 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
-// #include <immintrin.h>
-// #include <tuple>
+#include <immintrin.h>
+#include <tuple>
 #define ll vector<double>
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
 /** parameter for multiple calculations between rows */
 #define S 16
+#define infinity 2147483647
 typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 #define ll4_t vector<double4_t>
 
@@ -48,17 +49,16 @@ void set_result_to_zero(int ny, float *result)
       result[i + j * ny] = 0.0;
 }
 
-// void get_rows_order(int ny, vector<tuple<int, int, int>> &rows)
-// {
-// #pragma omp parallel for
-//   for (int ja = 0; ja < ny; ++ja)
-//     for (int ia = 0; ia < ny; ++ia)
-//     {
-//       int jia = _pdep_u32(ja, 0x55555555) | _pdep_u32(ia, 0xAAAAAAAA);
-//       rows[ja * ny + ia] = std::make_tuple(jia, ja, ia);
-//     }
-//   sort(rows.begin(), rows.end());
-// }
+void get_rows_order(int ny, vector<tuple<int, int, int>> &rows)
+{
+  for (int j = 0; j < ny; j += S)
+    for (int i = j; i < ny; i += S)
+    {
+      int ji = _pdep_u32(j, 0x55555555) | _pdep_u32(i, 0xAAAAAAAA);
+      rows.push_back(make_tuple(ji, j, i));
+    }
+  // sort(rows.begin(), rows.end());
+}
 
 /*
 This is the function you need to implement. Quick reference:
@@ -77,29 +77,28 @@ void correlate(int ny, int nx, const float *data, float *result)
   ll4_t normalized(ny * nnx);
   normalize_rows(ny, nx, nnx, data, normalized);
 
-  // vector<tuple<int, int, int>> rows(ny * ny);
-  // get_rows_order(ny, rows);
+  vector<tuple<int, int, int>> rows;
+  get_rows_order(ny, rows);
 
 #pragma omp parallel for
-  for (int j = 0; j < ny; j += S)
-    for (int i = j; i < ny; i += S)
-    {
-      int s1_limit = min(S, ny - j);
-      int s2_limit = min(S, ny - i);
+  for (auto [_, j, i] : rows)
+  {
+    int s1_limit = min(S, ny - j);
+    int s2_limit = min(S, ny - i);
 
-      ll4_t sum(S * S);
-      for (int k = 0; k < nnx; k++)
-        for (int s1 = 0; s1 < s1_limit; s1++)
-          for (int s2 = 0; s2 < s2_limit; s2++)
-            sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
-
-      ll cumsum(S * S, 0.0);
-      for (int s = 0; s < S * S; s++)
-        for (int h = 0; h < N; h++)
-          cumsum[s] += sum[s][h];
-
+    ll4_t sum(S * S);
+    for (int k = 0; k < nnx; k++)
       for (int s1 = 0; s1 < s1_limit; s1++)
         for (int s2 = 0; s2 < s2_limit; s2++)
-          result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
-    }
+          sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
+
+    ll cumsum(S * S, 0.0);
+    for (int s = 0; s < S * S; s++)
+      for (int h = 0; h < N; h++)
+        cumsum[s] += sum[s][h];
+
+    for (int s1 = 0; s1 < s1_limit; s1++)
+      for (int s2 = 0; s2 < s2_limit; s2++)
+        result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
+  }
 }
