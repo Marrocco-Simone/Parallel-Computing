@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <immintrin.h>
 #include <tuple>
-#define ll vector<double>
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
 /** parameter for multiple calculations between rows */
@@ -87,22 +86,21 @@ void correlate(int ny, int nx, const float *data, float *result)
 #pragma omp parallel for
   for (auto [_, j, i] : rows)
   {
-    int s1_limit = min(S, ny - j);
-    int s2_limit = min(S, ny - i);
-
     /* sum[s1][s2] = double4_t of the sums between rows (j+s1) and (i+s2) */
-    ll4_t sum(S * S);
+    double4_t sum[S * S] = {0.0};
     for (int k = 0; k < nnx; k++)
-      for (int s1 = 0; s1 < s1_limit; s1++)
-        for (int s2 = 0; s2 < s2_limit; s2++)
+      for (int s1 = 0; s1 < S; s1++)
+        for (int s2 = 0; s2 < S; s2++)
           sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
 
     /* cumsum[s1][s2] = cumulative value of the result between rows (j+s1) and (i+s2) */
-    ll cumsum(S * S, 0.0);
+    double cumsum[S * S] = {0.0};
     for (int s = 0; s < S * S; s++)
       for (int h = 0; h < N; h++)
         cumsum[s] += sum[s][h];
 
+    int s1_limit = min(S, ny - j);
+    int s2_limit = min(S, ny - i);
     for (int s1 = 0; s1 < s1_limit; s1++)
       for (int s2 = 0; s2 < s2_limit; s2++)
         result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
