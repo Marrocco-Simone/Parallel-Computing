@@ -75,7 +75,8 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   int next_mul_of_N = nx + (N - nx % N) % N;
   int nnx = next_mul_of_N / N;
-  ll4_t normalized(ny * nnx);
+  int next_mul_of_S = ny + (S - ny % S) % S;
+  ll4_t normalized(next_mul_of_S * nnx);
   normalize_rows(ny, nx, nnx, data, normalized);
 
   int p = (ny - 1) / S;
