@@ -6,7 +6,8 @@
 /** parameter for vectoring operations - dont touch, dependeant on double implementation */
 #define N 4
 /** parameter for multiple calculations between rows */
-#define S 8
+#define S 4
+#define K 200
 #define infinity 2147483647
 typedef double double4_t __attribute__((vector_size(N * sizeof(double))));
 #define ll4_t vector<double4_t>
@@ -72,9 +73,13 @@ This is the function you need to implement. Quick reference:
 void correlate(int ny, int nx, const float *data, float *result)
 {
   set_result_to_zero(ny, result);
+  // * only for double version
+  vector<double> result_d(ny * ny, 0.0);
 
   int next_mul_of_N = nx + (N - nx % N) % N;
-  int nnx = next_mul_of_N / N;
+  int nnx_0 = next_mul_of_N / N;
+  int next_mul_of_K = nnx_0 + (K - nnx_0 % K) % K;
+  int nnx = next_mul_of_K;
   int next_mul_of_S = ny + (S - ny % S) % S;
   ll4_t normalized(next_mul_of_S * nnx);
   normalize_rows(ny, nx, nnx, data, normalized);
@@ -84,26 +89,38 @@ void correlate(int ny, int nx, const float *data, float *result)
   vector<tuple<int, int, int>> rows(dim);
   get_rows_order(ny, rows);
 
-#pragma omp parallel for
-  for (auto [_, j, i] : rows)
+  for (int kstart = 0; kstart < nnx; kstart += K)
   {
-    /* sum[s1][s2] = double4_t of the sums between rows (j+s1) and (i+s2) */
-    double4_t sum[S * S] = {0.0};
-    for (int k = 0; k < nnx; k++)
-      for (int s1 = 0; s1 < S; s1++)
-        for (int s2 = 0; s2 < S; s2++)
-          sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
+    int kend = kstart + K;
+#pragma omp parallel for
+    for (auto [_, j, i] : rows)
+    {
+      /* sum[s1][s2] = double4_t of the sums between rows (j+s1) and (i+s2) */
+      double4_t sum[S * S] = {0.0};
+      for (int k = kstart; k < kend; k++)
+        for (int s1 = 0; s1 < S; s1++)
+          for (int s2 = 0; s2 < S; s2++)
+            sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
 
-    /* cumsum[s1][s2] = cumulative value of the result between rows (j+s1) and (i+s2) */
-    double cumsum[S * S] = {0.0};
-    for (int s = 0; s < S * S; s++)
-      for (int h = 0; h < N; h++)
-        cumsum[s] += sum[s][h];
+      /* cumsum[s1][s2] = cumulative value of the result between rows (j+s1) and (i+s2) */
+      double cumsum[S * S] = {0.0};
+      for (int s = 0; s < S * S; s++)
+        for (int h = 0; h < N; h++)
+          cumsum[s] += sum[s][h];
 
-    int s1_limit = min(S, ny - j);
-    int s2_limit = min(S, ny - i);
-    for (int s1 = 0; s1 < s1_limit; s1++)
-      for (int s2 = 0; s2 < s2_limit; s2++)
-        result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
+      int s1_limit = min(S, ny - j);
+      int s2_limit = min(S, ny - i);
+      for (int s1 = 0; s1 < s1_limit; s1++)
+        for (int s2 = 0; s2 < s2_limit; s2++)
+          // * only for double version
+          // result[i + s2 + (j + s1) * ny] += cumsum[s2 + s1 * S];
+          result_d[i + s2 + (j + s1) * ny] += cumsum[s2 + s1 * S];
+    }
   }
+
+// * only for double version
+#pragma omp parallel for
+  for (int j = 0; j < ny * ny; j++)
+    for (int i = j; i < ny; i++)
+      result[i + j * ny] = result_d[i + j * ny];
 }
