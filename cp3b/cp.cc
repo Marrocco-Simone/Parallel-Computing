@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <immintrin.h>
 #include <tuple>
-#define ll vector<float>
 /** parameter for vectoring operations - dont touch, dependeant on float implementation */
 #define N 8
 /** parameter for multiple calculations between rows */
-#define S 8
+#define S 4
+#define K 200
 #define infinity 2147483647
 typedef float float8_t __attribute__((vector_size(N * sizeof(float))));
 #define ll4_t vector<float8_t>
@@ -75,8 +75,11 @@ void correlate(int ny, int nx, const float *data, float *result)
   set_result_to_zero(ny, result);
 
   int next_mul_of_N = nx + (N - nx % N) % N;
-  int nnx = next_mul_of_N / N;
-  ll4_t normalized(ny * nnx);
+  int nnx_0 = next_mul_of_N / N;
+  int next_mul_of_K = nnx_0 + (K - nnx_0 % K) % K;
+  int nnx = next_mul_of_K;
+  int next_mul_of_S = ny + (S - ny % S) % S;
+  ll4_t normalized(next_mul_of_S * nnx);
   normalize_rows(ny, nx, nnx, data, normalized);
 
   int p = (ny - 1) / S;
@@ -84,25 +87,30 @@ void correlate(int ny, int nx, const float *data, float *result)
   vector<tuple<int, int, int>> rows(dim);
   get_rows_order(ny, rows);
 
-#pragma omp parallel for
-  for (auto [_, j, i] : rows)
+  for (int kstart = 0; kstart < nnx; kstart += K)
   {
-    int s1_limit = min(S, ny - j);
-    int s2_limit = min(S, ny - i);
+    int kend = kstart + K;
+#pragma omp parallel for
+    for (auto [_, j, i] : rows)
+    {
+      /* sum[s1][s2] = float8_t of the sums between rows (j+s1) and (i+s2) */
+      float8_t sum[S * S] = {0.0};
+      for (int k = kstart; k < kend; k++)
+        for (int s1 = 0; s1 < S; s1++)
+          for (int s2 = 0; s2 < S; s2++)
+            sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
 
-    ll4_t sum(S * S);
-    for (int k = 0; k < nnx; k++)
+      /* cumsum[s1][s2] = cumulative value of the result between rows (j+s1) and (i+s2) */
+      float cumsum[S * S] = {0.0};
+      for (int s = 0; s < S * S; s++)
+        for (int h = 0; h < N; h++)
+          cumsum[s] += sum[s][h];
+
+      int s1_limit = min(S, ny - j);
+      int s2_limit = min(S, ny - i);
       for (int s1 = 0; s1 < s1_limit; s1++)
         for (int s2 = 0; s2 < s2_limit; s2++)
-          sum[s2 + s1 * S] += normalized[k + (i + s2) * nnx] * normalized[k + (j + s1) * nnx];
-
-    ll cumsum(S * S, 0.0);
-    for (int s = 0; s < S * S; s++)
-      for (int h = 0; h < N; h++)
-        cumsum[s] += sum[s][h];
-
-    for (int s1 = 0; s1 < s1_limit; s1++)
-      for (int s2 = 0; s2 < s2_limit; s2++)
-        result[i + s2 + (j + s1) * ny] = cumsum[s2 + s1 * S];
+          result[i + s2 + (j + s1) * ny] += cumsum[s2 + s1 * S];
+    }
   }
 }
