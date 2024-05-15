@@ -288,28 +288,28 @@ Result segment(int ny, int nx, const float *data)
             {
                 for (int y0 = 0; y0 <= ny - ydim; y0++)
                 {
-                    int x1 = x0 + xdim;
-                    int y1 = y0 + ydim;
+                    int x1 = x0 + xdim - 1;
+                    int y1 = y0 + ydim - 1;
                     double outer[C] = {0.0};
                     double inner[C] = {0.0};
 
-                    calculate_avg_in_color(x0, x1 - 1, y0, y1 - 1, nx, avg_from_zero, inner);
-                    calculate_avg_out_color(x0, x1 - 1, y0, y1 - 1, nx, ny, inner, total_avg, outer);
+                    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
+                    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
 
                     double outer_squared_sums[C] = {0.0};
                     double inner_squared_sums[C] = {0.0};
-                    calculate_in_squared_sum(x0, x1 - 1, y0, y1 - 1, nx, sum_squared_from_zero, inner_squared_sums);
+                    calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
                     calculate_out_squared_sum(nx, ny, inner_squared_sums, sum_squared_from_zero, outer_squared_sums);
-                    int in_points = calculate_in_points(x0, x1 - 1, y0, y1 - 1);
+                    int in_points = calculate_in_points(x0, x1, y0, y1);
                     double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
 
                     if (sq_err < min_err)
                     {
                         min_err = sq_err;
                         result.x0 = x0;
-                        result.x1 = x1;
+                        result.x1 = x1 + 1;
                         result.y0 = y0;
-                        result.y1 = y1;
+                        result.y1 = y1 + 1;
                         for (int c = 0; c < C; c++)
                         {
                             result.inner[c] = inner[c];
