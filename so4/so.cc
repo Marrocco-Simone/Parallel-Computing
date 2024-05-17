@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <vector>
 #include <climits>
-#define MIN_SORT 16
-#define STEP 8
+#define MIN_SORT 128
+#define STEP 10
 
 using namespace std;
 
