@@ -45,10 +45,10 @@ __global__ void normalize_rows(int ny, int nx, float *data, float *normalized)
 
 __global__ void calculate_result(int nx, int ny, float *result, float *normalized)
 {
-  int is = blockIdx.x * STEPS;
-  int js = threadIdx.x * STEPS;
-  int ie = min(is + STEPS, ny);
+  int js = blockIdx.x * STEPS;
+  int is = threadIdx.x * STEPS;
   int je = min(js + STEPS, ny);
+  int ie = min(is + STEPS, ny);
 
   if (is >= ny || js >= ny)
     return;
