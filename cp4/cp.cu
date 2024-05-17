@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <cuda_runtime.h>
-// #define ll vector<float>
 using namespace std;
 
 static inline void check(cudaError_t err, const char *context)
@@ -17,13 +16,6 @@ static inline void check(cudaError_t err, const char *context)
 }
 
 #define CHECK(x) check(x, #x)
-
-void set_result_to_zero(int ny, float *result)
-{
-  for (int j = 0; j < ny; j++)
-    for (int i = j; i < ny; i++)
-      result[i + j * ny] = 0.0;
-}
 
 void normalize_rows(int ny, int nx, const float *data, float *normalized)
 {
@@ -51,8 +43,11 @@ void normalize_rows(int ny, int nx, const float *data, float *normalized)
 
 __global__ void calculate_result(int nx, int ny, float *result, float *normalized)
 {
-  int i = threadIdx.x;
+  int i = blockIdx.x;
   int j = threadIdx.x;
+
+  if (i >= ny || j >= ny)
+    return;
 
   float sum = 0.0;
   for (int k = 0; k < nx; ++k)
@@ -71,19 +66,21 @@ This is the function you need to implement. Quick reference:
 */
 void correlate(int ny, int nx, const float *data, float *result)
 {
-  set_result_to_zero(ny, result);
-  // ll normalized(nx * ny, 0);
-  float *normalized = (float *)malloc(nx * ny * sizeof(float));
+  constexpr int steps = 8;
+  int nnx = nx + steps - nx % steps;
+  int nny = ny + steps - ny % steps;
+  // float *normalized = (float *)malloc(nnx * nny * sizeof(float));
+  float *normalized = (float *)calloc(nnx * nny, sizeof(float));
   normalize_rows(ny, nx, data, normalized);
 
   // Allocate memory & copy data to GPU
   float *normalizedGPU = NULL;
-  CHECK(cudaMalloc((void **)&normalizedGPU, nx * ny * sizeof(float)));
+  CHECK(cudaMalloc((void **)&normalizedGPU, nnx * nny * sizeof(float)));
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
-  CHECK(cudaMemcpy(normalizedGPU, normalized, nx * ny * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK(cudaMemcpy(normalizedGPU, normalized, nnx * nny * sizeof(float), cudaMemcpyHostToDevice));
 
-  calculate_result<<<ny, ny>>>(nx, ny, resultGPU, normalizedGPU);
+  calculate_result<<<nny, nny>>>(nx, ny, resultGPU, normalizedGPU);
   CHECK(cudaGetLastError());
 
   CHECK(cudaMemcpy(result, resultGPU, ny * ny * sizeof(float), cudaMemcpyDeviceToHost));
