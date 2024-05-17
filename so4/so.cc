@@ -11,7 +11,7 @@ typedef unsigned long long data_t;
 void merge(data_t *data, int start, int end)
 {
     vector<data_t> temp(end - start);
-    vector<int> indexes(STEP, 0);
+    int indexes[STEP] = {0};
     int step = (end - start) / STEP + 1;
     for (int j = 0; j < end - start; j++)
     {
