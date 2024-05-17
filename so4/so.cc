@@ -40,7 +40,7 @@ void merge(data_t *data, int start, int end)
 void merge_sort(data_t *data, int start, int end)
 {
     int step = (end - start) / STEP + 1;
-    if (end - start < MIN_SORT || step == 0)
+    if (end - start < MIN_SORT)
     {
         std::sort(data + start, data + end);
         return;
