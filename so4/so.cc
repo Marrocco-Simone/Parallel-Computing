@@ -29,7 +29,6 @@ void merge(data_t *data, int start, int end)
             min_value = data[start + indexes[i] + i * step];
         }
         temp[j] = min_value;
-        // swap(data[start + j], data[start + indexes[min_index] + min_index * step]);
         indexes[min_index]++;
     }
     for (int j = 0; j < end - start; j++)
