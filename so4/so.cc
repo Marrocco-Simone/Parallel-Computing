@@ -19,12 +19,16 @@ void merge(data_t *data, int start, int end)
         data_t min_value = ULLONG_MAX;
         for (int i = 0; i < STEP; i++)
         {
-            if (indexes[i] >= step || start + indexes[i] + i * step >= end || data[start + indexes[i] + i * step] >= min_value)
+            if (indexes[i] >= step)
+                continue;
+            if (start + indexes[i] + i * step >= end)
+                continue;
+            if (data[start + indexes[i] + i * step] >= min_value)
                 continue;
             min_index = i;
             min_value = data[start + indexes[i] + i * step];
         }
-        temp[j] = data[start + indexes[min_index] + min_index * step];
+        temp[j] = min_value;
         indexes[min_index]++;
     }
     for (int j = start; j < end; j++)
