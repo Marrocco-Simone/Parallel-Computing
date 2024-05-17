@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cuda_runtime.h>
+#define STEPS 16
 using namespace std;
 
 static inline void check(cudaError_t err, const char *context)
@@ -43,17 +44,24 @@ void normalize_rows(int ny, int nx, const float *data, float *normalized)
 
 __global__ void calculate_result(int nx, int ny, float *result, float *normalized)
 {
-  int i = blockIdx.x;
-  int j = threadIdx.x;
+  int is = blockIdx.x * STEPS;
+  int js = threadIdx.x * STEPS;
 
-  if (i >= ny || j >= ny)
+  if (is >= ny || js >= ny)
     return;
 
-  float sum = 0.0;
-  for (int k = 0; k < nx; ++k)
-    sum += normalized[k + i * nx] * normalized[k + j * nx];
+  for (int j = js; j < js + STEPS; j++)
+    for (int i = is; i < is + STEPS; i++)
+    {
+      if (i >= ny || j >= ny)
+        continue;
 
-  result[i + j * ny] = sum;
+      float sum = 0.0;
+      for (int k = 0; k < nx; ++k)
+        sum += normalized[k + i * nx] * normalized[k + j * nx];
+
+      result[i + j * ny] = sum;
+    }
 }
 
 /*
@@ -66,9 +74,8 @@ This is the function you need to implement. Quick reference:
 */
 void correlate(int ny, int nx, const float *data, float *result)
 {
-  constexpr int steps = 8;
-  int nnx = nx + steps - nx % steps;
-  int nny = ny + steps - ny % steps;
+  int nnx = nx + STEPS - nx % STEPS;
+  int nny = ny + STEPS - ny % STEPS;
   // float *normalized = (float *)malloc(nnx * nny * sizeof(float));
   float *normalized = (float *)calloc(nnx * nny, sizeof(float));
   normalize_rows(ny, nx, data, normalized);
@@ -80,7 +87,7 @@ void correlate(int ny, int nx, const float *data, float *result)
   CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
   CHECK(cudaMemcpy(normalizedGPU, normalized, nnx * nny * sizeof(float), cudaMemcpyHostToDevice));
 
-  calculate_result<<<nny, nny>>>(nx, ny, resultGPU, normalizedGPU);
+  calculate_result<<<nny / STEPS, nny / STEPS>>>(nx, ny, resultGPU, normalizedGPU);
   CHECK(cudaGetLastError());
 
   CHECK(cudaMemcpy(result, resultGPU, ny * ny * sizeof(float), cudaMemcpyDeviceToHost));
