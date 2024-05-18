@@ -41,34 +41,12 @@ void calculate_avg_from_zero(int ny, int nx, const float *data, vector<double> &
         for (int y = 0; y < ny; y++)
             for (int c = 0; c < C; c++)
             {
-                if (y == 0)
-                {
-                    if (x == 0)
-                    {
-                        // * set first element
-                        avg_from_zero[id(x, y, c, nx)] = color(x, y, c, nx, data);
-                    }
-                    else
-                    {
-                        // * set first row
-                        double prev_left_block = avg_from_zero[id(x - 1, y, c, nx)] * ((y + 1) * x);
-                        avg_from_zero[id(x, y, c, nx)] = (prev_left_block + color(x, y, c, nx, data)) / ((x + 1) * (y + 1));
-                    }
-                }
-                else if (x == 0)
-                {
-                    // * set first column
-                    double prev_up_block = avg_from_zero[id(x, y - 1, c, nx)] * (y * (x + 1));
-                    avg_from_zero[id(x, y, c, nx)] = (prev_up_block + color(x, y, c, nx, data)) / ((x + 1) * (y + 1));
-                }
-                else
-                {
-                    double prev_left_block = avg_from_zero[id(x - 1, y, c, nx)] * ((y + 1) * x);
-                    double prev_up_block = avg_from_zero[id(x, y - 1, c, nx)] * (y * (x + 1));
-                    double prev_left_up_block = avg_from_zero[id(x - 1, y - 1, c, nx)] * (y * x);
+                double point_block = color(x, y, c, nx, data);
+                double prev_left_block = (x != 0) ? avg_from_zero[id(x - 1, y, c, nx)] * ((y + 1) * x) : 0;
+                double prev_up_block = (y != 0) ? avg_from_zero[id(x, y - 1, c, nx)] * (y * (x + 1)) : 0;
+                double prev_left_up_block = (x != 0 && y != 0) ? avg_from_zero[id(x - 1, y - 1, c, nx)] * (y * x) : 0;
 
-                    avg_from_zero[id(x, y, c, nx)] = (prev_left_block + prev_up_block - prev_left_up_block + color(x, y, c, nx, data)) / ((x + 1) * (y + 1));
-                }
+                avg_from_zero[id(x, y, c, nx)] = (prev_left_block + prev_up_block - prev_left_up_block + point_block) / ((x + 1) * (y + 1));
             }
 }
 
@@ -79,35 +57,12 @@ void calculate_sum_squared_from_zero(int ny, int nx, const float *data, vector<d
         for (int y = 0; y < ny; y++)
             for (int c = 0; c < C; c++)
             {
-                double squared_color = color(x, y, c, nx, data) * color(x, y, c, nx, data);
-                if (y == 0)
-                {
-                    if (x == 0)
-                    {
-                        // * set first element
-                        sum_squared_from_zero[id(x, y, c, nx)] = squared_color;
-                    }
-                    else
-                    {
-                        // * set first row
-                        double prev_left_block = sum_squared_from_zero[id(x - 1, y, c, nx)];
-                        sum_squared_from_zero[id(x, y, c, nx)] = (prev_left_block + squared_color);
-                    }
-                }
-                else if (x == 0)
-                {
-                    // * set first column
-                    double prev_up_block = sum_squared_from_zero[id(x, y - 1, c, nx)];
-                    sum_squared_from_zero[id(x, y, c, nx)] = (prev_up_block + squared_color);
-                }
-                else
-                {
-                    double prev_left_block = sum_squared_from_zero[id(x - 1, y, c, nx)];
-                    double prev_up_block = sum_squared_from_zero[id(x, y - 1, c, nx)];
-                    double prev_left_up_block = sum_squared_from_zero[id(x - 1, y - 1, c, nx)];
+                double point_block = color(x, y, c, nx, data) * color(x, y, c, nx, data);
+                double prev_left_block = (x != 0) ? sum_squared_from_zero[id(x - 1, y, c, nx)] : 0;
+                double prev_up_block = (y != 0) ? sum_squared_from_zero[id(x, y - 1, c, nx)] : 0;
+                double prev_left_up_block = (x != 0 && y != 0) ? sum_squared_from_zero[id(x - 1, y - 1, c, nx)] : 0;
 
-                    sum_squared_from_zero[id(x, y, c, nx)] = (prev_left_block + prev_up_block - prev_left_up_block + squared_color);
-                }
+                sum_squared_from_zero[id(x, y, c, nx)] = (prev_left_block + prev_up_block - prev_left_up_block + point_block);
             }
 }
 
@@ -123,49 +78,12 @@ void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<doubl
     int in_points = calculate_in_points(x0, x1, y0, y1);
     for (int c = 0; c < C; c++)
     {
-        if (y0 == 0)
-        {
-            if (x0 == 0)
-            {
-                in[c] = avg_from_zero[id(x1, y1, c, nx)];
-            }
-            else
-            {
-                double point_block = avg_from_zero[id(x1, y1, c, nx)] * ((y1 + 1) * (x1 + 1));
-                double prev_left_block = avg_from_zero[id(x0 - 1, y1, c, nx)] * ((y1 + 1) * x0);
-                in[c] = (point_block - prev_left_block) / in_points;
-            }
-        }
-        else if (x0 == 0)
-        {
-            double point_block = avg_from_zero[id(x1, y1, c, nx)] * ((y1 + 1) * (x1 + 1));
-            double prev_up_block = avg_from_zero[id(x1, y0 - 1, c, nx)] * (y0 * (x1 + 1));
-            in[c] = (point_block - prev_up_block) / in_points;
-        }
-        else if (y1 == 0)
-        {
-            {
-                // * set first row
-                double x0y1_block = avg_from_zero[id(x0 - 1, y1, c, nx)] * x0;
-                double x1y1_block = avg_from_zero[id(x1, y1, c, nx)] * (x1 + 1);
-                in[c] = (x1y1_block - x0y1_block) / in_points;
-            }
-        }
-        else if (x1 == 0)
-        {
-            // * set first column
-            double x1y0_block = avg_from_zero[id(x1, y0 - 1, c, nx)] * y0;
-            double x1y1_block = avg_from_zero[id(x1, y1, c, nx)] * (y1 + 1);
-            in[c] = (x1y1_block - x1y0_block) / in_points;
-        }
-        else
-        {
-            double x0y0_block = avg_from_zero[id(x0 - 1, y0 - 1, c, nx)] * (y0 * x0);
-            double x1y0_block = avg_from_zero[id(x1, y0 - 1, c, nx)] * (y0 * (x1 + 1));
-            double x0y1_block = avg_from_zero[id(x0 - 1, y1, c, nx)] * ((y1 + 1) * x0);
-            double x1y1_block = avg_from_zero[id(x1, y1, c, nx)] * ((y1 + 1) * (x1 + 1));
-            in[c] = (x0y0_block + x1y1_block - x1y0_block - x0y1_block) / in_points;
-        }
+        double point_block = avg_from_zero[id(x1, y1, c, nx)] * ((y1 + 1) * (x1 + 1));
+        double prev_left_block = (x0 != 0 && x1 != 0) ? avg_from_zero[id(x0 - 1, y1, c, nx)] * ((y1 + 1) * x0) : 0;
+        double prev_up_block = (y0 != 0 && y1 != 0) ? avg_from_zero[id(x1, y0 - 1, c, nx)] * (y0 * (x1 + 1)) : 0;
+        double prev_up_left_block = (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0) ? avg_from_zero[id(x0 - 1, y0 - 1, c, nx)] * (y0 * x0) : 0;
+
+        in[c] = (prev_up_left_block + point_block - prev_up_block - prev_left_block) / in_points;
     }
 }
 
@@ -174,49 +92,12 @@ void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<dou
 {
     for (int c = 0; c < C; c++)
     {
-        if (y0 == 0)
-        {
-            if (x0 == 0)
-            {
-                in[c] = sum_squared_from_zero[id(x1, y1, c, nx)];
-            }
-            else
-            {
-                double point_block = sum_squared_from_zero[id(x1, y1, c, nx)];
-                double prev_left_block = sum_squared_from_zero[id(x0 - 1, y1, c, nx)];
-                in[c] = point_block - prev_left_block;
-            }
-        }
-        else if (x0 == 0)
-        {
-            double point_block = sum_squared_from_zero[id(x1, y1, c, nx)];
-            double prev_up_block = sum_squared_from_zero[id(x1, y0 - 1, c, nx)];
-            in[c] = point_block - prev_up_block;
-        }
-        else if (y1 == 0)
-        {
-            {
-                // * set first row
-                double x0y1_block = sum_squared_from_zero[id(x0 - 1, y1, c, nx)];
-                double x1y1_block = sum_squared_from_zero[id(x1, y1, c, nx)];
-                in[c] = x1y1_block - x0y1_block;
-            }
-        }
-        else if (x1 == 0)
-        {
-            // * set first column
-            double x1y0_block = sum_squared_from_zero[id(x1, y0 - 1, c, nx)];
-            double x1y1_block = sum_squared_from_zero[id(x1, y1, c, nx)];
-            in[c] = x1y1_block - x1y0_block;
-        }
-        else
-        {
-            double x0y0_block = sum_squared_from_zero[id(x0 - 1, y0 - 1, c, nx)];
-            double x1y0_block = sum_squared_from_zero[id(x1, y0 - 1, c, nx)];
-            double x0y1_block = sum_squared_from_zero[id(x0 - 1, y1, c, nx)];
-            double x1y1_block = sum_squared_from_zero[id(x1, y1, c, nx)];
-            in[c] = (x0y0_block + x1y1_block - x1y0_block - x0y1_block);
-        }
+        double point_block = sum_squared_from_zero[id(x1, y1, c, nx)];
+        double prev_left_block = (x0 != 0 && x1 != 0) ? sum_squared_from_zero[id(x0 - 1, y1, c, nx)] : 0;
+        double prev_up_block = (y0 != 0 && y1 != 0) ? sum_squared_from_zero[id(x1, y0 - 1, c, nx)] : 0;
+        double prev_up_left_block = (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0) ? sum_squared_from_zero[id(x0 - 1, y0 - 1, c, nx)] : 0;
+
+        in[c] = (prev_up_left_block + point_block - prev_up_block - prev_left_block);
     }
 }
 
@@ -260,25 +141,6 @@ double calculate_out_error(double *out, double *out_squared_sum, int in_points, 
 {
     int out_points = full_points - in_points;
     return calculate_in_error(out, out_squared_sum, out_points);
-}
-
-/** O(1) */
-double calculate_square_error(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double> &avg_from_zero, double *total_avg, std::vector<double> &sum_squared_from_zero)
-{
-    double outer[C] = {0.0};
-    double inner[C] = {0.0};
-
-    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
-    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
-
-    double outer_squared_sums[C] = {0.0};
-    double inner_squared_sums[C] = {0.0};
-    calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
-    calculate_out_squared_sum(nx, ny, inner_squared_sums, sum_squared_from_zero, outer_squared_sums);
-    int in_points = calculate_in_points(x0, x1, y0, y1);
-    double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
-
-    return sq_err;
 }
 
 /** O(1) */
@@ -334,7 +196,18 @@ Result segment(int ny, int nx, const float *data)
                 {
                     int x1 = x0 + xdim - 1;
                     int y1 = y0 + ydim - 1;
-                    double sq_err = calculate_square_error(x0, x1, y0, y1, nx, ny, avg_from_zero, total_avg, sum_squared_from_zero);
+                    double outer[C] = {0.0};
+                    double inner[C] = {0.0};
+
+                    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
+                    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
+
+                    double outer_squared_sums[C] = {0.0};
+                    double inner_squared_sums[C] = {0.0};
+                    calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
+                    calculate_out_squared_sum(nx, ny, inner_squared_sums, sum_squared_from_zero, outer_squared_sums);
+                    int in_points = calculate_in_points(x0, x1, y0, y1);
+                    double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
 
                     if (sq_err < min_err)
                     {
