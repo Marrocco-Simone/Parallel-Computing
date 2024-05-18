@@ -46,12 +46,19 @@ void merge_sort(data_t *data, int start, int end)
         return;
     }
 
-#pragma omp parallel for
-    for (int i = start; i < end; i += step)
+#pragma omp parallel
+#pragma omp single
     {
-        merge_sort(data, i, min(i + step, end));
+        // ! avoid nested loops
+        // #pragma omp parallel for
+        for (int i = start; i < end; i += step)
+        {
+#pragma omp task
+            merge_sort(data, i, min(i + step, end));
+        }
+#pragma omp taskwait
+        merge(data, start, end);
     }
-    merge(data, start, end);
 }
 
 void psort(int n, data_t *data)
