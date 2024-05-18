@@ -122,11 +122,11 @@ void calculate_avg_out_color(int x0, int x1, int y0, int y1, int nx, int ny, dou
 }
 
 /** O(1) */
-void calculate_out_squared_sum(int nx, int ny, double *in, vector<double> const &sum_squared_from_zero, double *out)
+void calculate_out_squared_sum(double *in, double *end_sum_squared, double *out)
 {
     for (int c = 0; c < C; c++)
     {
-        out[c] = sum_squared_from_zero[id(nx - 1, ny - 1, c, nx)] - in[c];
+        out[c] = end_sum_squared[c] - in[c];
     }
 }
 
@@ -182,6 +182,11 @@ Result segment(int ny, int nx, const float *data)
     calculate_avg_from_zero(ny, nx, data, avg_from_zero);
     vector<double> sum_squared_from_zero(C * nx * ny, 0.0);
     calculate_sum_squared_from_zero(ny, nx, data, sum_squared_from_zero);
+    double end_sum_squared[C] = {0.0};
+    for (int c = 0; c < C; c++)
+    {
+        end_sum_squared[c] = sum_squared_from_zero[id(nx - 1, ny - 1, c, nx)];
+    }
 
     vector<int> best_solutions_coord(ny * 4);
     vector<double> best_solutions(ny);
@@ -208,7 +213,7 @@ Result segment(int ny, int nx, const float *data)
                     double outer_squared_sums[C] = {0.0};
                     double inner_squared_sums[C] = {0.0};
                     calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
-                    calculate_out_squared_sum(nx, ny, inner_squared_sums, sum_squared_from_zero, outer_squared_sums);
+                    calculate_out_squared_sum(inner_squared_sums, end_sum_squared, outer_squared_sums);
                     int in_points = calculate_in_points(x0, x1, y0, y1);
                     double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
 
