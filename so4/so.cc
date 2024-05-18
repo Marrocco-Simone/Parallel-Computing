@@ -29,7 +29,7 @@ void merge_sort(data_t *data, int start, int end, int min_sort)
     }
 }
 
-void top_down(int n, data_t *data, int min_sort)
+void bottom_up(int n, data_t *data, int min_sort)
 {
 #pragma omp parallel for
     for (int i = 0; i < n; i += min_sort)
@@ -53,7 +53,7 @@ void top_down(int n, data_t *data, int min_sort)
         }
 }
 
-void bottom_down(int n, data_t *data, int min_sort)
+void top_down(int n, data_t *data, int min_sort)
 {
 #pragma omp parallel
 #pragma omp single
@@ -69,6 +69,6 @@ void psort(int n, data_t *data)
     if (min_sort < 2)
         min_sort = 2;
 
-    bottom_down(n, data, min_sort);
-    // top_down(n, data, min_sort);
+    // bottom_down(n, data, min_sort);
+    top_down(n, data, min_sort);
 }
