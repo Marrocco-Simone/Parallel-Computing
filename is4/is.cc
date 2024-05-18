@@ -75,10 +75,9 @@ int calculate_in_points(int x0, int x1, int y0, int y1)
     return (y1 - y0 + 1) * (x1 - x0 + 1);
 }
 
-/** O(1) */
-void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<double> const &avg_from_zero, double *in)
+/** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
+void calculate_avg_in_color(int in_points, int x0, int x1, int y0, int y1, int nx, vector<double> const &avg_from_zero, double *in)
 {
-    int in_points = calculate_in_points(x0, x1, y0, y1);
     for (int c = 0; c < C; c++)
     {
         double point_block = avg_from_zero[id(x1, y1, c, nx)] * ((y1 + 1) * (x1 + 1));
@@ -90,7 +89,7 @@ void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<doubl
     }
 }
 
-/** O(1) */
+/** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
 void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double> const &sum_squared_from_zero, double *in)
 {
     for (int c = 0; c < C; c++)
@@ -105,9 +104,8 @@ void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<dou
 }
 
 /** O(1) */
-void calculate_avg_out_color(int x0, int x1, int y0, int y1, int nx, int ny, double *in, double *total_avg, double *out)
+void calculate_avg_out_color(int in_points, int nx, int ny, double *in, double *total_avg, double *out)
 {
-    int in_points = calculate_in_points(x0, x1, y0, y1);
     int full_points = (nx * ny);
     if (in_points == full_points)
     {
@@ -152,8 +150,9 @@ void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vecto
     double outer[C] = {0.0};
     double inner[C] = {0.0};
 
-    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
-    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
+    int in_points = calculate_in_points(x0, x1, y0, y1);
+    calculate_avg_in_color(in_points, x0, x1, y0, y1, nx, avg_from_zero, inner);
+    calculate_avg_out_color(in_points, nx, ny, inner, total_avg, outer);
 
     result.x0 = x0;
     result.x1 = x1 + 1;
@@ -207,14 +206,14 @@ Result segment(int ny, int nx, const float *data)
                     double outer[C] = {0.0};
                     double inner[C] = {0.0};
 
-                    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
-                    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
+                    int in_points = calculate_in_points(x0, x1, y0, y1);
+                    calculate_avg_in_color(in_points, x0, x1, y0, y1, nx, avg_from_zero, inner);
+                    calculate_avg_out_color(in_points, nx, ny, inner, total_avg, outer);
 
                     double outer_squared_sums[C] = {0.0};
                     double inner_squared_sums[C] = {0.0};
                     calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
                     calculate_out_squared_sum(inner_squared_sums, end_sum_squared, outer_squared_sums);
-                    int in_points = calculate_in_points(x0, x1, y0, y1);
                     double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
 
                     if (sq_err < min_err)
