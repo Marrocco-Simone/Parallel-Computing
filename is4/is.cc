@@ -311,7 +311,6 @@ This is the function you need to implement. Quick reference:
 Result segment(int ny, int nx, const float *data)
 {
     Result result{0, 0, 0, 0, {0, 0, 0}, {0, 0, 0}};
-    double min_err = infty;
     double total_avg[C] = {0.0};
     calculate_total_avg(ny, nx, data, total_avg);
     vector<double> avg_from_zero(C * nx * ny, 0.0);
@@ -319,8 +318,14 @@ Result segment(int ny, int nx, const float *data)
     vector<double> sum_squared_from_zero(C * nx * ny, 0.0);
     calculate_sum_squared_from_zero(ny, nx, data, sum_squared_from_zero);
 
+    vector<int> best_solutions_coord(nx * 4);
+    vector<double> best_solutions(nx);
+
+#pragma omp parallel for
     for (int xdim = 1; xdim <= nx; xdim++)
     {
+        double min_err = infty;
+        int i = xdim - 1;
         for (int ydim = 1; ydim <= ny; ydim++)
         {
             for (int x0 = 0; x0 <= nx - xdim; x0++)
@@ -334,12 +339,27 @@ Result segment(int ny, int nx, const float *data)
                     if (sq_err < min_err)
                     {
                         min_err = sq_err;
-                        set_result(x0, x1, y0, y1, nx, ny, avg_from_zero, total_avg, result);
+                        best_solutions[i] = sq_err;
+                        best_solutions_coord[i * 4 + 0] = x0;
+                        best_solutions_coord[i * 4 + 1] = x1;
+                        best_solutions_coord[i * 4 + 2] = y0;
+                        best_solutions_coord[i * 4 + 3] = y1;
                     }
                 }
             }
         }
     }
+
+    int min_i = 0;
+    for (int i = 0; i < nx; i++)
+        if (best_solutions[i] < best_solutions[min_i])
+            min_i = i;
+
+    int x0 = best_solutions_coord[min_i * 4 + 0];
+    int x1 = best_solutions_coord[min_i * 4 + 1];
+    int y0 = best_solutions_coord[min_i * 4 + 2];
+    int y1 = best_solutions_coord[min_i * 4 + 3];
+    set_result(x0, x1, y0, y1, nx, ny, avg_from_zero, total_avg, result);
 
     return result;
 }
