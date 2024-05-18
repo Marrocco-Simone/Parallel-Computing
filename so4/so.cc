@@ -53,6 +53,13 @@ void top_down(int n, data_t *data, int min_sort)
         }
 }
 
+void bottom_down(int n, data_t *data, int min_sort)
+{
+#pragma omp parallel
+#pragma omp single
+    merge_sort(data, 0, n, min_sort);
+}
+
 void psort(int n, data_t *data)
 {
     // FIXME: Implement a more efficient parallel sorting algorithm for the CPU,
@@ -61,8 +68,7 @@ void psort(int n, data_t *data)
     int min_sort = n / MIN_SORT;
     if (min_sort < 2)
         min_sort = 2;
-#pragma omp parallel
-#pragma omp single
-    merge_sort(data, 0, n, min_sort);
+
+    bottom_down(n, data, min_sort);
     // top_down(n, data, min_sort);
 }
