@@ -20,7 +20,8 @@ void merge_sort(data_t *data, int start, int end)
     merge_sort(data, mid, end);
 #pragma omp taskwait
     {
-        vector<data_t> tmp(end - start);
+        vector<data_t> tmp;
+        tmp.reserve(end - start);
         std::merge(data + start, data + mid, data + mid, data + end, tmp.begin());
 
         for (int i = start; i < end; i++)
