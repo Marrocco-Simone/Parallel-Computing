@@ -46,25 +46,23 @@ void merge_sort(data_t *data, int start, int end)
         return;
     }
 
-#pragma omp parallel
-#pragma omp single
+    for (int i = start; i < end; i += step)
     {
-        // ! avoid nested loops
-        // #pragma omp parallel for
-        for (int i = start; i < end; i += step)
-        {
 #pragma omp task
-            merge_sort(data, i, min(i + step, end));
-        }
-#pragma omp taskwait
-        merge(data, start, end);
+        merge_sort(data, i, min(i + step, end));
     }
+#pragma omp taskwait
+    merge(data, start, end);
 }
 
 void psort(int n, data_t *data)
 {
-    // FIXME: Implement a more efficient parallel sorting algorithm for the CPU,
-    // using the basic idea of merge sort.
-    // std::sort(data, data + n);
-    merge_sort(data, 0, n);
+// FIXME: Implement a more efficient parallel sorting algorithm for the CPU,
+// using the basic idea of merge sort.
+// std::sort(data, data + n);
+#pragma omp parallel
+#pragma omp single
+    {
+        merge_sort(data, 0, n);
+    }
 }
