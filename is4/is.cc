@@ -183,19 +183,19 @@ Result segment(int ny, int nx, const float *data)
     vector<double> sum_squared_from_zero(C * nx * ny, 0.0);
     calculate_sum_squared_from_zero(ny, nx, data, sum_squared_from_zero);
 
-    vector<int> best_solutions_coord(nx * 4);
-    vector<double> best_solutions(nx);
+    vector<int> best_solutions_coord(ny * 4);
+    vector<double> best_solutions(ny);
 
 #pragma omp parallel for
-    for (int xdim = 1; xdim <= nx; xdim++)
+    for (int ydim = 1; ydim <= ny; ydim++)
     {
         double min_err = infty;
-        int i = xdim - 1;
-        for (int ydim = 1; ydim <= ny; ydim++)
+        int i = ydim - 1;
+        for (int xdim = 1; xdim <= nx; xdim++)
         {
-            for (int x0 = 0; x0 <= nx - xdim; x0++)
+            for (int y0 = 0; y0 <= ny - ydim; y0++)
             {
-                for (int y0 = 0; y0 <= ny - ydim; y0++)
+                for (int x0 = 0; x0 <= nx - xdim; x0++)
                 {
                     int x1 = x0 + xdim - 1;
                     int y1 = y0 + ydim - 1;
@@ -227,7 +227,7 @@ Result segment(int ny, int nx, const float *data)
     }
 
     int min_i = 0;
-    for (int i = 0; i < nx; i++)
+    for (int i = 0; i < ny; i++)
         if (best_solutions[i] < best_solutions[min_i])
             min_i = i;
 
