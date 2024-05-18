@@ -19,14 +19,7 @@ void merge_sort(data_t *data, int start, int end, int min_sort)
 #pragma omp task
     merge_sort(data, mid, end, min_sort);
 #pragma omp taskwait
-    {
-        vector<data_t> tmp;
-        tmp.reserve(end - start);
-        std::merge(data + start, data + mid, data + mid, data + end, tmp.begin());
-
-        for (int i = start; i < end; i++)
-            data[i] = tmp[i - start];
-    }
+    std::inplace_merge(data + start, data + mid, data + end);
 }
 
 void bottom_up(int n, data_t *data, int min_sort)
