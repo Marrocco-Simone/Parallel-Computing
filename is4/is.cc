@@ -28,18 +28,20 @@ double color(int x, int y, int c, int nx, const float *data)
 void calculate_total_avg(int ny, int nx, const float *data, double *total_avg)
 {
     int tot = ny * nx;
-    for (int x = 0; x < nx; x++)
-        for (int y = 0; y < ny; y++)
-            for (int c = 0; c < C; c++)
+#pragma omp parallel for
+    for (int c = 0; c < C; c++)
+        for (int x = 0; x < nx; x++)
+            for (int y = 0; y < ny; y++)
                 total_avg[c] += color(x, y, c, nx, data) / tot;
 }
 
 /** O(n^2) */
 void calculate_avg_from_zero(int ny, int nx, const float *data, vector<double> &avg_from_zero)
 {
-    for (int x = 0; x < nx; x++)
-        for (int y = 0; y < ny; y++)
-            for (int c = 0; c < C; c++)
+#pragma omp parallel for
+    for (int c = 0; c < C; c++)
+        for (int x = 0; x < nx; x++)
+            for (int y = 0; y < ny; y++)
             {
                 double point_block = color(x, y, c, nx, data);
                 double prev_left_block = (x != 0) ? avg_from_zero[id(x - 1, y, c, nx)] * ((y + 1) * x) : 0;
@@ -53,9 +55,10 @@ void calculate_avg_from_zero(int ny, int nx, const float *data, vector<double> &
 /** O(n^2) */
 void calculate_sum_squared_from_zero(int ny, int nx, const float *data, vector<double> &sum_squared_from_zero)
 {
-    for (int x = 0; x < nx; x++)
-        for (int y = 0; y < ny; y++)
-            for (int c = 0; c < C; c++)
+#pragma omp parallel for
+    for (int c = 0; c < C; c++)
+        for (int x = 0; x < nx; x++)
+            for (int y = 0; y < ny; y++)
             {
                 double point_block = color(x, y, c, nx, data) * color(x, y, c, nx, data);
                 double prev_left_block = (x != 0) ? sum_squared_from_zero[id(x - 1, y, c, nx)] : 0;
