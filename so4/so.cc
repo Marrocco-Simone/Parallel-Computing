@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <vector>
-#define MIN_SORT 1024
+#define MIN_SORT 2048
 
 using namespace std;
 
