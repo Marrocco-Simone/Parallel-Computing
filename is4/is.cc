@@ -262,6 +262,45 @@ double calculate_out_error(double *out, double *out_squared_sum, int in_points, 
     return calculate_in_error(out, out_squared_sum, out_points);
 }
 
+/** O(1) */
+double calculate_square_error(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double> &avg_from_zero, double *total_avg, std::vector<double> &sum_squared_from_zero)
+{
+    double outer[C] = {0.0};
+    double inner[C] = {0.0};
+
+    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
+    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
+
+    double outer_squared_sums[C] = {0.0};
+    double inner_squared_sums[C] = {0.0};
+    calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
+    calculate_out_squared_sum(nx, ny, inner_squared_sums, sum_squared_from_zero, outer_squared_sums);
+    int in_points = calculate_in_points(x0, x1, y0, y1);
+    double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
+
+    return sq_err;
+}
+
+/** O(1) */
+void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double> &avg_from_zero, double *total_avg, Result &result)
+{
+    double outer[C] = {0.0};
+    double inner[C] = {0.0};
+
+    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
+    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
+
+    result.x0 = x0;
+    result.x1 = x1 + 1;
+    result.y0 = y0;
+    result.y1 = y1 + 1;
+    for (int c = 0; c < C; c++)
+    {
+        result.inner[c] = inner[c];
+        result.outer[c] = outer[c];
+    }
+}
+
 /*
 This is the function you need to implement. Quick reference:
 - x coordinates: 0 <= x < nx
@@ -290,31 +329,12 @@ Result segment(int ny, int nx, const float *data)
                 {
                     int x1 = x0 + xdim - 1;
                     int y1 = y0 + ydim - 1;
-                    double outer[C] = {0.0};
-                    double inner[C] = {0.0};
-
-                    calculate_avg_in_color(x0, x1, y0, y1, nx, avg_from_zero, inner);
-                    calculate_avg_out_color(x0, x1, y0, y1, nx, ny, inner, total_avg, outer);
-
-                    double outer_squared_sums[C] = {0.0};
-                    double inner_squared_sums[C] = {0.0};
-                    calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
-                    calculate_out_squared_sum(nx, ny, inner_squared_sums, sum_squared_from_zero, outer_squared_sums);
-                    int in_points = calculate_in_points(x0, x1, y0, y1);
-                    double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
+                    double sq_err = calculate_square_error(x0, x1, y0, y1, nx, ny, avg_from_zero, total_avg, sum_squared_from_zero);
 
                     if (sq_err < min_err)
                     {
                         min_err = sq_err;
-                        result.x0 = x0;
-                        result.x1 = x1 + 1;
-                        result.y0 = y0;
-                        result.y1 = y1 + 1;
-                        for (int c = 0; c < C; c++)
-                        {
-                            result.inner[c] = inner[c];
-                            result.outer[c] = outer[c];
-                        }
+                        set_result(x0, x1, y0, y1, nx, ny, avg_from_zero, total_avg, result);
                     }
                 }
             }
