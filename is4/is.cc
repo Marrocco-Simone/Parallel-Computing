@@ -144,7 +144,7 @@ Result segment(int ny, int nx, const float *data)
 #pragma omp parallel for schedule(dynamic, 2)
     for (int x0y0 = 0; x0y0 < ny * nx; x0y0++)
     {
-        double min_err = infty;
+        double max_err = 0.0;
         int i = x0y0;
         int y0 = x0y0 / nx;
         int x0 = x0y0 % nx;
@@ -160,12 +160,12 @@ Result segment(int ny, int nx, const float *data)
                 calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
                 calculate_avg_out_color(inner, total_sum, outer);
 
-                double sq_err = (-1) * (calculate_in_error(inner, in_points) + calculate_out_error(outer, in_points, nx * ny));
+                double inv_sq_err = calculate_in_error(inner, in_points) + calculate_out_error(outer, in_points, nx * ny);
 
-                if (sq_err < min_err)
+                if (inv_sq_err > max_err)
                 {
-                    min_err = sq_err;
-                    best_solutions[i] = sq_err;
+                    max_err = inv_sq_err;
+                    best_solutions[i] = inv_sq_err;
                     best_solutions_coord[i * 2 + 0] = x1;
                     best_solutions_coord[i * 2 + 1] = y1;
                 }
@@ -175,7 +175,7 @@ Result segment(int ny, int nx, const float *data)
 
     int min_i = 0;
     for (int i = 0; i < nx * ny; i++)
-        if (best_solutions[i] < best_solutions[min_i])
+        if (best_solutions[i] > best_solutions[min_i])
             min_i = i;
 
     int y0 = min_i / nx;
