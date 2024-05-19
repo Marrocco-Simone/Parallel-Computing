@@ -226,38 +226,38 @@ Result segment(int ny, int nx, const float *data)
     calculate_sum_squared_from_zero(ny, nx, data, sum_squared_from_zero);
     double4_t end_sum_squared = sum_squared_from_zero[id4_t(nx - 1, ny - 1, nx)];
 
-    vector<int> best_solutions_coord(ny * 4);
-    vector<double> best_solutions(ny);
+    vector<int> best_solutions_coord(nx * ny * 4);
+    vector<double> best_solutions(nx * ny);
 
 #pragma omp parallel for schedule(dynamic, 2)
-    for (int y0 = 0; y0 < ny; y0++)
+    for (int x0y0 = 0; x0y0 < ny * nx; x0y0++)
     {
         double min_err = infty;
-        int i = y0;
-        for (int x0 = 0; x0 < nx; x0++)
-        {
-            for (int y1 = y0; y1 < ny; y1++)
-            {
-                for (int x1 = x0; x1 < nx; x1++)
-                {
-                    double sq_err = calculate_sq_error(x0, x1, y0, y1, nx, ny, total_avg, end_sum_squared, sum_from_zero, sum_squared_from_zero);
+        int i = x0y0;
+        int y0 = x0y0 / nx;
+        int x0 = x0y0 % nx;
 
-                    if (sq_err < min_err)
-                    {
-                        min_err = sq_err;
-                        best_solutions[i] = sq_err;
-                        best_solutions_coord[i * 4 + 0] = x0;
-                        best_solutions_coord[i * 4 + 1] = x1;
-                        best_solutions_coord[i * 4 + 2] = y0;
-                        best_solutions_coord[i * 4 + 3] = y1;
-                    }
+        for (int y1 = y0; y1 < ny; y1++)
+        {
+            for (int x1 = x0; x1 < nx; x1++)
+            {
+                double sq_err = calculate_sq_error(x0, x1, y0, y1, nx, ny, total_avg, end_sum_squared, sum_from_zero, sum_squared_from_zero);
+
+                if (sq_err < min_err)
+                {
+                    min_err = sq_err;
+                    best_solutions[i] = sq_err;
+                    best_solutions_coord[i * 4 + 0] = x0;
+                    best_solutions_coord[i * 4 + 1] = x1;
+                    best_solutions_coord[i * 4 + 2] = y0;
+                    best_solutions_coord[i * 4 + 3] = y1;
                 }
             }
         }
     }
 
     int min_i = 0;
-    for (int i = 0; i < ny; i++)
+    for (int i = 0; i < nx * ny; i++)
         if (best_solutions[i] < best_solutions[min_i])
             min_i = i;
 
