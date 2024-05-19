@@ -111,7 +111,7 @@ void calculate_avg_out_color(double4_t &inner, double4_t &total_avg, double4_t &
 }
 
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
-void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_squared_from_zero, double4_t &inner)
+void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_squared_from_zero, double4_t &inner_squared_sums)
 {
     double4_t point_block = sum_squared_from_zero[id4_t(x1, y1, nx)];
     double4_t prev_left_block = {0.0};
@@ -125,13 +125,13 @@ void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<dou
     if (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0)
         prev_left_up_block = sum_squared_from_zero[id4_t(x0 - 1, y0 - 1, nx)];
 
-    inner = (prev_left_up_block + point_block - prev_up_block - prev_left_block);
+    inner_squared_sums = (prev_left_up_block + point_block - prev_up_block - prev_left_block);
 }
 
 /** O(1) */
-void calculate_out_squared_sum(double4_t &inner, double4_t &end_sum_squared, double4_t &outer)
+void calculate_out_squared_sum(double4_t &inner_squared_sums, double4_t &end_sum_squared, double4_t &outer_squared_sums)
 {
-    outer = end_sum_squared - inner;
+    outer_squared_sums = end_sum_squared - inner_squared_sums;
 }
 
 /** O(1) */
