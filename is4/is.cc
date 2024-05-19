@@ -212,18 +212,16 @@ Result segment(int ny, int nx, const float *data)
     vector<double> best_solutions(ny);
 
 #pragma omp parallel for
-    for (int ydim = 1; ydim <= ny; ydim++)
+    for (int y0 = 0; y0 < ny; y0++)
     {
         double min_err = infty;
-        int i = ydim - 1;
-        for (int xdim = 1; xdim <= nx; xdim++)
+        int i = y0;
+        for (int x0 = 0; x0 < nx; x0++)
         {
-            for (int y0 = 0; y0 <= ny - ydim; y0++)
+            for (int y1 = y0; y1 < ny; y1++)
             {
-                for (int x0 = 0; x0 <= nx - xdim; x0++)
+                for (int x1 = x0; x1 < nx; x1++)
                 {
-                    int x1 = x0 + xdim - 1;
-                    int y1 = y0 + ydim - 1;
                     double4_t outer = {0.0};
                     double4_t inner = {0.0};
 
