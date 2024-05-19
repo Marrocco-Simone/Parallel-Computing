@@ -169,24 +169,6 @@ void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vecto
     }
 }
 
-double calculate_sq_error(int x0, int x1, int y0, int y1, int nx, int ny, double4_t &total_avg, double4_t &end_sum_squared, vector<double4_t> &sum_from_zero, vector<double4_t> &sum_squared_from_zero)
-{
-    double4_t outer = {0.0};
-    double4_t inner = {0.0};
-
-    int in_points = calculate_in_points(x0, x1, y0, y1);
-    calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
-    calculate_avg_out_color(inner, total_avg, outer);
-
-    double4_t outer_squared_sums = {0.0};
-    double4_t inner_squared_sums = {0.0};
-    calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
-    calculate_out_squared_sum(inner_squared_sums, end_sum_squared, outer_squared_sums);
-    double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
-
-    return sq_err;
-}
-
 /*
 This is the function you need to implement. Quick reference:
 - x coordinates: 0 <= x < nx
@@ -220,7 +202,19 @@ Result segment(int ny, int nx, const float *data)
         {
             for (int x1 = x0; x1 < nx; x1++)
             {
-                double sq_err = calculate_sq_error(x0, x1, y0, y1, nx, ny, total_avg, end_sum_squared, sum_from_zero, sum_squared_from_zero);
+                int in_points = calculate_in_points(x0, x1, y0, y1);
+
+                double4_t outer = {0.0};
+                double4_t inner = {0.0};
+                calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
+                calculate_avg_out_color(inner, total_avg, outer);
+
+                double4_t outer_squared_sums = {0.0};
+                double4_t inner_squared_sums = {0.0};
+                calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
+                calculate_out_squared_sum(inner_squared_sums, end_sum_squared, outer_squared_sums);
+
+                double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
 
                 if (sq_err < min_err)
                 {
