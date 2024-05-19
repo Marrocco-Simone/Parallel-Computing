@@ -229,7 +229,7 @@ Result segment(int ny, int nx, const float *data)
     vector<int> best_solutions_coord(ny * 4);
     vector<double> best_solutions(ny);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 2)
     for (int y0 = 0; y0 < ny; y0++)
     {
         double min_err = infty;
