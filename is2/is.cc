@@ -73,35 +73,35 @@ int calculate_in_points(int x0, int x1, int y0, int y1)
 }
 
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
-void calculate_avg_in_color(int in_points, int x0, int x1, int y0, int y1, int nx, vector<double> const &sum_from_zero, double *in)
+void calculate_avg_in_color(int in_points, int x0, int x1, int y0, int y1, int nx, vector<double> const &sum_from_zero, double *inner)
 {
     for (int c = 0; c < C; c++)
     {
         double point_block = sum_from_zero[id(x1, y1, c, nx)];
         double prev_left_block = (x0 != 0 && x1 != 0) ? sum_from_zero[id(x0 - 1, y1, c, nx)] : 0;
         double prev_up_block = (y0 != 0 && y1 != 0) ? sum_from_zero[id(x1, y0 - 1, c, nx)] : 0;
-        double prev_up_left_block = (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0) ? sum_from_zero[id(x0 - 1, y0 - 1, c, nx)] : 0;
+        double prev_left_up_block = (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0) ? sum_from_zero[id(x0 - 1, y0 - 1, c, nx)] : 0;
 
-        in[c] = (prev_up_left_block + point_block - prev_up_block - prev_left_block) / in_points;
+        inner[c] = (prev_left_up_block + point_block - prev_up_block - prev_left_block) / in_points;
     }
 }
 
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
-void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double> const &sum_squared_from_zero, double *in)
+void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double> const &sum_squared_from_zero, double *inner)
 {
     for (int c = 0; c < C; c++)
     {
         double point_block = sum_squared_from_zero[id(x1, y1, c, nx)];
         double prev_left_block = (x0 != 0 && x1 != 0) ? sum_squared_from_zero[id(x0 - 1, y1, c, nx)] : 0;
         double prev_up_block = (y0 != 0 && y1 != 0) ? sum_squared_from_zero[id(x1, y0 - 1, c, nx)] : 0;
-        double prev_up_left_block = (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0) ? sum_squared_from_zero[id(x0 - 1, y0 - 1, c, nx)] : 0;
+        double prev_left_up_block = (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0) ? sum_squared_from_zero[id(x0 - 1, y0 - 1, c, nx)] : 0;
 
-        in[c] = (prev_up_left_block + point_block - prev_up_block - prev_left_block);
+        inner[c] = (prev_left_up_block + point_block - prev_up_block - prev_left_block);
     }
 }
 
 /** O(1) */
-void calculate_avg_out_color(int in_points, int nx, int ny, double *in, double *total_avg, double *out)
+void calculate_avg_out_color(int in_points, int nx, int ny, double *inner, double *total_avg, double *outer)
 {
     int full_points = (nx * ny);
     if (in_points == full_points)
@@ -110,35 +110,35 @@ void calculate_avg_out_color(int in_points, int nx, int ny, double *in, double *
     }
     for (int c = 0; c < C; c++)
     {
-        double in_block = in[c] * in_points;
+        double in_block = inner[c] * in_points;
         double full_block = total_avg[c] * full_points;
-        out[c] = (full_block - in_block) / (full_points - in_points);
+        outer[c] = (full_block - in_block) / (full_points - in_points);
     }
 }
 
 /** O(1) */
-void calculate_out_squared_sum(double *in, double *end_sum_squared, double *out)
+void calculate_out_squared_sum(double *inner, double *end_sum_squared, double *outer)
 {
     for (int c = 0; c < C; c++)
     {
-        out[c] = end_sum_squared[c] - in[c];
+        outer[c] = end_sum_squared[c] - inner[c];
     }
 }
 
 /** O(1) */
-double calculate_in_error(double *in, double *in_squared_sum, int in_points)
+double calculate_in_error(double *inner, double *in_squared_sum, int in_points)
 {
-    double sum0 = in_squared_sum[0] - in_points * in[0] * in[0];
-    double sum1 = in_squared_sum[1] - in_points * in[1] * in[1];
-    double sum2 = in_squared_sum[2] - in_points * in[2] * in[2];
+    double sum0 = in_squared_sum[0] - in_points * inner[0] * inner[0];
+    double sum1 = in_squared_sum[1] - in_points * inner[1] * inner[1];
+    double sum2 = in_squared_sum[2] - in_points * inner[2] * inner[2];
     return sum0 + sum1 + sum2;
 }
 
 /** O(1) */
-double calculate_out_error(double *out, double *out_squared_sum, int in_points, int full_points)
+double calculate_out_error(double *outer, double *out_squared_sum, int in_points, int full_points)
 {
     int out_points = full_points - in_points;
-    return calculate_in_error(out, out_squared_sum, out_points);
+    return calculate_in_error(outer, out_squared_sum, out_points);
 }
 
 /** O(1) */
