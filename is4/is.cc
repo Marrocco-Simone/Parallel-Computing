@@ -117,14 +117,14 @@ void calculate_avg_out_color(int in_points, int full_points, double4_t &inner, d
     {
         return;
     }
-    double4_t in_points4_t, full_points4_t;
+    double4_t in_points4_t, out_points4_t;
     for (int t = 0; t < T; t++)
     {
         in_points4_t[t] = in_points;
-        full_points4_t[t] = full_points;
+        out_points4_t[t] = full_points - in_points;
     }
     double4_t in_block = inner * in_points4_t;
-    outer = (total_avg - in_block) / (full_points4_t - in_points4_t);
+    outer = (total_avg - in_block) / out_points4_t;
 }
 
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
