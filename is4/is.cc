@@ -119,34 +119,36 @@ Result segment(int ny, int nx, const float *data)
     auto t2 = high_resolution_clock::now();
 
 #pragma omp parallel for schedule(dynamic, 2)
-    for (int x0y0 = 0; x0y0 < ny * nx; x0y0++)
-    {
-        int i = x0y0;
-        int y0 = x0y0 / nx;
-        int x0 = x0y0 % nx;
-        double max_err = 0.0;
-
-        for (int y1 = y0 + 1; y1 <= ny; y1++)
+    for (int ydim = 1; ydim <= ny; ydim++)
+        for (int xdim = 1; xdim <= nx; xdim++)
         {
-            for (int x1 = x0 + 1; x1 <= nx; x1++)
+            int i = (ydim - 1) * nx + xdim - 1;
+            double max_err = 0.0;
+
+            for (int y0 = 0; y0 < ny - ydim + 1; y0++)
             {
-                int in_points = calculate_in_points(x0, x1, y0, y1);
-                int out_points = full_points - in_points;
+                for (int x0 = 0; x0 < nx - xdim + 1; x0++)
+                {
+                    int y1 = y0 + ydim;
+                    int x1 = x0 + xdim;
 
-                double4_t inner;
-                calculate_avg_in_color(x0, x1, y0, y1, nx + 1, sum_from_zero, inner);
-                double4_t outer = total_sum - inner;
+                    int in_points = calculate_in_points(x0, x1, y0, y1);
+                    int out_points = full_points - in_points;
 
-                double out_err = (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]);
-                double in_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
-                double inv_sq_err = in_err / in_points + out_err / out_points;
+                    double4_t inner;
+                    calculate_avg_in_color(x0, x1, y0, y1, nx + 1, sum_from_zero, inner);
+                    double4_t outer = total_sum - inner;
 
-                max_err = max(max_err, inv_sq_err);
+                    double out_err = (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]);
+                    double in_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
+                    double inv_sq_err = in_err / in_points + out_err / out_points;
+
+                    max_err = max(max_err, inv_sq_err);
+                }
             }
-        }
 
-        best_solutions[i] = max_err;
-    }
+            best_solutions[i] = max_err;
+        }
 
     auto t3 = high_resolution_clock::now();
 
@@ -155,16 +157,21 @@ Result segment(int ny, int nx, const float *data)
         if (best_solutions[i] > best_solutions[min_i])
             min_i = i;
 
-    int y0 = min_i / nx;
-    int x0 = min_i % nx;
+    int ydim = min_i / nx + 1;
+    int xdim = min_i % nx + 1;
 
-    int y1f = y0;
-    int x1f = x0;
+    int y0f = 0;
+    int x0f = 0;
+    int y1f = 0;
+    int x1f = 0;
     double max_err = 0.0;
-    for (int y1 = y0 + 1; y1 <= ny; y1++)
+    for (int y0 = 0; y0 < ny - ydim + 1; y0++)
     {
-        for (int x1 = x0 + 1; x1 <= nx; x1++)
+        for (int x0 = 0; x0 < nx - xdim + 1; x0++)
         {
+            int y1 = y0 + ydim;
+            int x1 = x0 + xdim;
+
             int in_points = calculate_in_points(x0, x1, y0, y1);
             int out_points = full_points - in_points;
 
@@ -172,17 +179,21 @@ Result segment(int ny, int nx, const float *data)
             calculate_avg_in_color(x0, x1, y0, y1, nx + 1, sum_from_zero, inner);
             double4_t outer = total_sum - inner;
 
-            double inv_sq_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points + (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]) / out_points;
+            double out_err = (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]);
+            double in_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
+            double inv_sq_err = in_err / in_points + out_err / out_points;
 
             if (inv_sq_err > max_err)
             {
                 max_err = inv_sq_err;
                 y1f = y1;
                 x1f = x1;
+                y0f = y0;
+                x0f = x0;
             }
         }
     }
-    set_result(x0, x1f, y0, y1f, nx, ny, sum_from_zero, total_sum, result);
+    set_result(x0f, x1f, y0f, y1f, nx, ny, sum_from_zero, total_sum, result);
 
     auto t4 = high_resolution_clock::now();
 
