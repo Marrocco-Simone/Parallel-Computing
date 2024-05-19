@@ -88,7 +88,7 @@ void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vecto
     int in_points = calculate_in_points(x0, x1, y0, y1);
     int out_points = nx * ny - in_points;
 
-    double4_t inner = {0.0};
+    double4_t inner;
     calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
     double4_t outer = total_sum - inner;
 
@@ -137,7 +137,7 @@ Result segment(int ny, int nx, const float *data)
                 int in_points = calculate_in_points(x0, x1, y0, y1);
                 int out_points = full_points - in_points;
 
-                double4_t inner = {0.0};
+                double4_t inner;
                 calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
                 double4_t outer = total_sum - inner;
 
