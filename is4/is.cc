@@ -139,7 +139,6 @@ Result segment(int ny, int nx, const float *data)
 
                 double out_err = (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]);
                 double in_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
-                double a = (in_points * out_points);
                 double inv_sq_err = in_err / in_points + out_err / out_points;
 
                 max_err = max(max_err, inv_sq_err);
