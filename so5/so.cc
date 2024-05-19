@@ -26,8 +26,6 @@ int partition(data_t *data, int low, int high)
 
 void quick_sort(data_t *data, int low, int high, int min_sort)
 {
-    if (low >= high)
-        return;
     if (high - low < min_sort)
     {
         std::sort(data + low, data + high + 1);
