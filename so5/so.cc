@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <vector>
+#include <cstdio>
 #define MIN_SORT 2048
 
 using namespace std;
@@ -9,18 +10,18 @@ typedef unsigned long long data_t;
 int partition(data_t *data, int low, int high)
 {
     data_t pivot = data[high];
-    int i = (low - 1);
+    int i = low;
 
     for (int j = low; j <= high; j++)
     {
         if (data[j] < pivot)
         {
-            i++;
             swap(data[i], data[j]);
+            i++;
         }
     }
-    swap(data[i + 1], data[high]);
-    return (i + 1);
+    swap(data[i], data[high]);
+    return i;
 }
 
 void quick_sort(data_t *data, int low, int high, int min_sort)
