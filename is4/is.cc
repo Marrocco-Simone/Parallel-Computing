@@ -111,24 +111,6 @@ void calculate_avg_in_color(int in_points, int x0, int x1, int y0, int y1, int n
     inner = (prev_left_up_block + point_block - prev_up_block - prev_left_block) / in_points4_t;
 }
 
-/** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
-void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_squared_from_zero, double4_t &inner)
-{
-    double4_t point_block = sum_squared_from_zero[id4_t(x1, y1, nx)];
-    double4_t prev_left_block = {0.0};
-    double4_t prev_up_block = {0.0};
-    double4_t prev_left_up_block = {0.0};
-
-    if (x0 != 0 && x1 != 0)
-        prev_left_block = sum_squared_from_zero[id4_t(x0 - 1, y1, nx)];
-    if (y0 != 0 && y1 != 0)
-        prev_up_block = sum_squared_from_zero[id4_t(x1, y0 - 1, nx)];
-    if (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0)
-        prev_left_up_block = sum_squared_from_zero[id4_t(x0 - 1, y0 - 1, nx)];
-
-    inner = (prev_left_up_block + point_block - prev_up_block - prev_left_block);
-}
-
 /** O(1) */
 void calculate_avg_out_color(int in_points, int full_points, double4_t &inner, double4_t &total_avg, double4_t &outer)
 {
@@ -145,6 +127,24 @@ void calculate_avg_out_color(int in_points, int full_points, double4_t &inner, d
     double4_t in_block = inner * in_points4_t;
     double4_t full_block = total_avg * full_points4_t;
     outer = (full_block - in_block) / (full_points4_t - in_points4_t);
+}
+
+/** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
+void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_squared_from_zero, double4_t &inner)
+{
+    double4_t point_block = sum_squared_from_zero[id4_t(x1, y1, nx)];
+    double4_t prev_left_block = {0.0};
+    double4_t prev_up_block = {0.0};
+    double4_t prev_left_up_block = {0.0};
+
+    if (x0 != 0 && x1 != 0)
+        prev_left_block = sum_squared_from_zero[id4_t(x0 - 1, y1, nx)];
+    if (y0 != 0 && y1 != 0)
+        prev_up_block = sum_squared_from_zero[id4_t(x1, y0 - 1, nx)];
+    if (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0)
+        prev_left_up_block = sum_squared_from_zero[id4_t(x0 - 1, y0 - 1, nx)];
+
+    inner = (prev_left_up_block + point_block - prev_up_block - prev_left_block);
 }
 
 /** O(1) */
