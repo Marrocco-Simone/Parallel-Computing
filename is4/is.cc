@@ -20,7 +20,7 @@ struct Result
 
 int id4_t(int x, int y, int nx)
 {
-    return x + nx * y;
+    return x + 1 + (nx + 1) * (y + 1);
 }
 
 double color(int x, int y, int c, int nx, const float *data)
@@ -45,16 +45,9 @@ void calculate_sum_from_zero(int ny, int nx, const float *data, vector<double4_t
         for (int y = 0; y < ny; y++)
         {
             double4_t point_block = {color(x, y, 0, nx, data), color(x, y, 1, nx, data), color(x, y, 2, nx, data), 0.0};
-            double4_t prev_left_block = {0.0};
-            double4_t prev_up_block = {0.0};
-            double4_t prev_left_up_block = {0.0};
-
-            if (x != 0)
-                prev_left_block = sum_from_zero[id4_t(x - 1, y, nx)];
-            if (y != 0)
-                prev_up_block = sum_from_zero[id4_t(x, y - 1, nx)];
-            if (x != 0 && y != 0)
-                prev_left_up_block = sum_from_zero[id4_t(x - 1, y - 1, nx)];
+            double4_t prev_left_block = sum_from_zero[id4_t(x - 1, y, nx)];
+            double4_t prev_up_block = sum_from_zero[id4_t(x, y - 1, nx)];
+            double4_t prev_left_up_block = sum_from_zero[id4_t(x - 1, y - 1, nx)];
 
             sum_from_zero[id4_t(x, y, nx)] = (prev_left_block + prev_up_block - prev_left_up_block + point_block);
         }
@@ -70,16 +63,9 @@ int calculate_in_points(int x0, int x1, int y0, int y1)
 void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_from_zero, double4_t &inner)
 {
     double4_t point_block = sum_from_zero[id4_t(x1, y1, nx)];
-    double4_t prev_left_block = {0.0};
-    double4_t prev_up_block = {0.0};
-    double4_t prev_left_up_block = {0.0};
-
-    if (x0 != 0 && x1 != 0)
-        prev_left_block = sum_from_zero[id4_t(x0 - 1, y1, nx)];
-    if (y0 != 0 && y1 != 0)
-        prev_up_block = sum_from_zero[id4_t(x1, y0 - 1, nx)];
-    if (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0)
-        prev_left_up_block = sum_from_zero[id4_t(x0 - 1, y0 - 1, nx)];
+    double4_t prev_left_block = sum_from_zero[id4_t(x0 - 1, y1, nx)];
+    double4_t prev_up_block = sum_from_zero[id4_t(x1, y0 - 1, nx)];
+    double4_t prev_left_up_block = sum_from_zero[id4_t(x0 - 1, y0 - 1, nx)];
 
     inner = prev_left_up_block + point_block - prev_up_block - prev_left_block;
 }
@@ -124,7 +110,7 @@ Result segment(int ny, int nx, const float *data)
     Result result{0, 0, 0, 0, {0, 0, 0}, {0, 0, 0}};
     double4_t total_sum = {0.0};
     calculate_total_sum(ny, nx, data, total_sum);
-    vector<double4_t> sum_from_zero(nx * ny);
+    vector<double4_t> sum_from_zero((nx + 1) * (ny + 1));
     calculate_sum_from_zero(ny, nx, data, sum_from_zero);
 
     vector<double> best_solutions(nx * ny, 0.0);
