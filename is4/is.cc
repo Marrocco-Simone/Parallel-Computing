@@ -53,12 +53,6 @@ void calculate_sum_from_zero(int ny, int nx, const float *data, vector<double4_t
         }
 }
 
-/** O(1) */
-int calculate_in_points(int x0, int x1, int y0, int y1)
-{
-    return (y1 - y0) * (x1 - x0);
-}
-
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
 void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_from_zero, double4_t &inner)
 {
@@ -73,7 +67,7 @@ void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<doubl
 /** O(1) */
 void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double4_t> &sum_from_zero, double4_t &total_sum, Result &result)
 {
-    int in_points = calculate_in_points(x0, x1, y0, y1);
+    int in_points = (y1 - y0) * (x1 - x0);
     int out_points = nx * ny - in_points;
 
     double4_t inner;
@@ -125,6 +119,11 @@ Result segment(int ny, int nx, const float *data)
             int i = (ydim - 1) * nx + xdim - 1;
             double max_err = 0.0;
 
+            int in_points = ydim * xdim;
+            int out_points = full_points - in_points;
+            double inv_in_points = 1.0 / in_points;
+            double inv_out_points = 1.0 / out_points;
+
             for (int y0 = 0; y0 < ny - ydim + 1; y0++)
             {
                 for (int x0 = 0; x0 < nx - xdim + 1; x0++)
@@ -132,16 +131,13 @@ Result segment(int ny, int nx, const float *data)
                     int y1 = y0 + ydim;
                     int x1 = x0 + xdim;
 
-                    int in_points = calculate_in_points(x0, x1, y0, y1);
-                    int out_points = full_points - in_points;
-
                     double4_t inner;
                     calculate_avg_in_color(x0, x1, y0, y1, nx + 1, sum_from_zero, inner);
                     double4_t outer = total_sum - inner;
 
                     double out_err = (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]);
                     double in_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
-                    double inv_sq_err = in_err / in_points + out_err / out_points;
+                    double inv_sq_err = in_err * inv_in_points + out_err * inv_out_points;
 
                     max_err = max(max_err, inv_sq_err);
                 }
@@ -165,6 +161,10 @@ Result segment(int ny, int nx, const float *data)
     int y1f = 0;
     int x1f = 0;
     double max_err = 0.0;
+    int in_points = ydim * xdim;
+    int out_points = full_points - in_points;
+    double inv_in_points = 1.0 / in_points;
+    double inv_out_points = 1.0 / out_points;
     for (int y0 = 0; y0 < ny - ydim + 1; y0++)
     {
         for (int x0 = 0; x0 < nx - xdim + 1; x0++)
@@ -172,7 +172,7 @@ Result segment(int ny, int nx, const float *data)
             int y1 = y0 + ydim;
             int x1 = x0 + xdim;
 
-            int in_points = calculate_in_points(x0, x1, y0, y1);
+            int in_points = (y1 - y0) * (x1 - x0);
             int out_points = full_points - in_points;
 
             double4_t inner;
@@ -181,7 +181,7 @@ Result segment(int ny, int nx, const float *data)
 
             double out_err = (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]);
             double in_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
-            double inv_sq_err = in_err / in_points + out_err / out_points;
+            double inv_sq_err = in_err * inv_in_points + out_err * inv_out_points;
 
             if (inv_sq_err > max_err)
             {
