@@ -83,21 +83,14 @@ void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<doubl
 }
 
 /** O(1) */
-void calculate_avg_out_color(double4_t &inner, double4_t &total_sum, double4_t &outer)
-{
-    outer = total_sum - inner;
-}
-
-/** O(1) */
 void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double4_t> &sum_from_zero, double4_t &total_sum, Result &result)
 {
-    double4_t outer = {0.0};
-    double4_t inner = {0.0};
-
     int in_points = calculate_in_points(x0, x1, y0, y1);
     int out_points = nx * ny - in_points;
+
+    double4_t inner = {0.0};
     calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
-    calculate_avg_out_color(inner, total_sum, outer);
+    double4_t outer = total_sum - inner;
 
     result.x0 = x0;
     result.x1 = x1 + 1;
@@ -144,10 +137,9 @@ Result segment(int ny, int nx, const float *data)
                 int in_points = calculate_in_points(x0, x1, y0, y1);
                 int out_points = full_points - in_points;
 
-                double4_t outer = {0.0};
                 double4_t inner = {0.0};
                 calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
-                calculate_avg_out_color(inner, total_sum, outer);
+                double4_t outer = total_sum - inner;
 
                 double inv_sq_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points + (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]) / out_points;
 
