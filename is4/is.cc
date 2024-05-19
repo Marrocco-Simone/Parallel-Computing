@@ -87,14 +87,8 @@ int calculate_in_points(int x0, int x1, int y0, int y1)
 }
 
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
-void calculate_avg_in_color(int in_points, int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_from_zero, double4_t &inner)
+void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_from_zero, double4_t &inner)
 {
-    double4_t in_points4_t;
-    for (int t = 0; t < T; t++)
-    {
-        in_points4_t[t] = in_points;
-    }
-
     double4_t point_block = sum_from_zero[id4_t(x1, y1, nx)];
     double4_t prev_left_block = {0.0};
     double4_t prev_up_block = {0.0};
@@ -107,24 +101,13 @@ void calculate_avg_in_color(int in_points, int x0, int x1, int y0, int y1, int n
     if (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0)
         prev_left_up_block = sum_from_zero[id4_t(x0 - 1, y0 - 1, nx)];
 
-    inner = (prev_left_up_block + point_block - prev_up_block - prev_left_block) / in_points4_t;
+    inner = prev_left_up_block + point_block - prev_up_block - prev_left_block;
 }
 
 /** O(1) */
-void calculate_avg_out_color(int in_points, int full_points, double4_t &inner, double4_t &total_avg, double4_t &outer)
+void calculate_avg_out_color(double4_t &inner, double4_t &total_avg, double4_t &outer)
 {
-    if (in_points == full_points)
-    {
-        return;
-    }
-    double4_t in_points4_t, out_points4_t;
-    for (int t = 0; t < T; t++)
-    {
-        in_points4_t[t] = in_points;
-        out_points4_t[t] = full_points - in_points;
-    }
-    double4_t in_block = inner * in_points4_t;
-    outer = (total_avg - in_block) / out_points4_t;
+    outer = total_avg - inner;
 }
 
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
@@ -154,7 +137,10 @@ void calculate_out_squared_sum(double4_t &inner, double4_t &end_sum_squared, dou
 /** O(1) */
 double calculate_in_error(double4_t &inner, double4_t &in_squared_sum, int in_points)
 {
-    return in_squared_sum[0] + in_squared_sum[1] + in_squared_sum[2] - in_points * (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
+    if (in_points == 0)
+        return 0.0;
+
+    return in_squared_sum[0] + in_squared_sum[1] + in_squared_sum[2] - (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points;
 }
 
 /** O(1) */
@@ -171,8 +157,9 @@ void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vecto
     double4_t inner = {0.0};
 
     int in_points = calculate_in_points(x0, x1, y0, y1);
-    calculate_avg_in_color(in_points, x0, x1, y0, y1, nx, sum_from_zero, inner);
-    calculate_avg_out_color(in_points, nx * ny, inner, total_avg, outer);
+    int out_points = nx * ny - in_points;
+    calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
+    calculate_avg_out_color(inner, total_avg, outer);
 
     result.x0 = x0;
     result.x1 = x1 + 1;
@@ -180,8 +167,8 @@ void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vecto
     result.y1 = y1 + 1;
     for (int c = 0; c < C; c++)
     {
-        result.inner[c] = inner[c];
-        result.outer[c] = outer[c];
+        result.inner[c] = inner[c] / in_points;
+        result.outer[c] = outer[c] / out_points;
     }
 }
 
@@ -191,8 +178,8 @@ double calculate_sq_error(int x0, int x1, int y0, int y1, int nx, int ny, double
     double4_t inner = {0.0};
 
     int in_points = calculate_in_points(x0, x1, y0, y1);
-    calculate_avg_in_color(in_points, x0, x1, y0, y1, nx, sum_from_zero, inner);
-    calculate_avg_out_color(in_points, nx * ny, inner, total_avg, outer);
+    calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
+    calculate_avg_out_color(inner, total_avg, outer);
 
     double4_t outer_squared_sums = {0.0};
     double4_t inner_squared_sums = {0.0};
