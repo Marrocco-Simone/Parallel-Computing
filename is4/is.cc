@@ -29,12 +29,11 @@ double color(int x, int y, int c, int nx, const float *data)
 /** O(n^2)*/
 void calculate_total_avg(int ny, int nx, const float *data, double4_t &total_avg)
 {
-    int tot = ny * nx;
 #pragma omp parallel for
     for (int c = 0; c < C; c++)
         for (int x = 0; x < nx; x++)
             for (int y = 0; y < ny; y++)
-                total_avg[c] += color(x, y, c, nx, data) / tot;
+                total_avg[c] += color(x, y, c, nx, data);
 }
 
 /** O(n^2) */
@@ -125,8 +124,7 @@ void calculate_avg_out_color(int in_points, int full_points, double4_t &inner, d
         full_points4_t[t] = full_points;
     }
     double4_t in_block = inner * in_points4_t;
-    double4_t full_block = total_avg * full_points4_t;
-    outer = (full_block - in_block) / (full_points4_t - in_points4_t);
+    outer = (total_avg - in_block) / (full_points4_t - in_points4_t);
 }
 
 /** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
