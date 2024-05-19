@@ -35,7 +35,7 @@ void calculate_total_avg(int ny, int nx, const float *data, double *total_avg)
 }
 
 /** O(n^2) */
-void calculate_avg_from_zero(int ny, int nx, const float *data, vector<double> &sum_from_zero)
+void calculate_sum_from_zero(int ny, int nx, const float *data, vector<double> &sum_from_zero)
 {
     for (int c = 0; c < C; c++)
         for (int x = 0; x < nx; x++)
@@ -176,7 +176,7 @@ Result segment(int ny, int nx, const float *data)
     double total_avg[C] = {0.0};
     calculate_total_avg(ny, nx, data, total_avg);
     vector<double> sum_from_zero(C * nx * ny, 0.0);
-    calculate_avg_from_zero(ny, nx, data, sum_from_zero);
+    calculate_sum_from_zero(ny, nx, data, sum_from_zero);
     vector<double> sum_squared_from_zero(C * nx * ny, 0.0);
     calculate_sum_squared_from_zero(ny, nx, data, sum_squared_from_zero);
     double end_sum_squared[C] = {0.0};
