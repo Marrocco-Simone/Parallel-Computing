@@ -89,19 +89,6 @@ void calculate_avg_out_color(double4_t &inner, double4_t &total_sum, double4_t &
 }
 
 /** O(1) */
-double calculate_in_error(double4_t &inner, int in_points)
-{
-    return (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points;
-}
-
-/** O(1) */
-double calculate_out_error(double4_t &outer, int in_points, int full_points)
-{
-    int out_points = full_points - in_points;
-    return calculate_in_error(outer, out_points);
-}
-
-/** O(1) */
 void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double4_t> &sum_from_zero, double4_t &total_sum, Result &result)
 {
     double4_t outer = {0.0};
@@ -140,6 +127,7 @@ Result segment(int ny, int nx, const float *data)
 
     vector<int> best_solutions_coord(nx * ny * 2);
     vector<double> best_solutions(nx * ny);
+    int full_points = nx * ny;
 
 #pragma omp parallel for schedule(dynamic, 2)
     for (int x0y0 = 0; x0y0 < ny * nx; x0y0++)
@@ -154,13 +142,14 @@ Result segment(int ny, int nx, const float *data)
             for (int x1 = x0; x1 < nx; x1++)
             {
                 int in_points = calculate_in_points(x0, x1, y0, y1);
+                int out_points = full_points - in_points;
 
                 double4_t outer = {0.0};
                 double4_t inner = {0.0};
                 calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
                 calculate_avg_out_color(inner, total_sum, outer);
 
-                double inv_sq_err = calculate_in_error(inner, in_points) + calculate_out_error(outer, in_points, nx * ny);
+                double inv_sq_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points + (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]) / out_points;
 
                 if (inv_sq_err > max_err)
                 {
