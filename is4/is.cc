@@ -205,7 +205,7 @@ Result segment(int ny, int nx, const float *data)
     calculate_sum_squared_from_zero(ny, nx, data, sum_squared_from_zero);
     double4_t end_sum_squared = sum_squared_from_zero[id4_t(nx - 1, ny - 1, nx)];
 
-    vector<int> best_solutions_coord(nx * ny * 4);
+    vector<int> best_solutions_coord(nx * ny * 2);
     vector<double> best_solutions(nx * ny);
 
 #pragma omp parallel for schedule(dynamic, 2)
@@ -226,10 +226,8 @@ Result segment(int ny, int nx, const float *data)
                 {
                     min_err = sq_err;
                     best_solutions[i] = sq_err;
-                    best_solutions_coord[i * 4 + 0] = x0;
-                    best_solutions_coord[i * 4 + 1] = x1;
-                    best_solutions_coord[i * 4 + 2] = y0;
-                    best_solutions_coord[i * 4 + 3] = y1;
+                    best_solutions_coord[i * 2 + 0] = x1;
+                    best_solutions_coord[i * 2 + 1] = y1;
                 }
             }
         }
@@ -240,10 +238,10 @@ Result segment(int ny, int nx, const float *data)
         if (best_solutions[i] < best_solutions[min_i])
             min_i = i;
 
-    int x0 = best_solutions_coord[min_i * 4 + 0];
-    int x1 = best_solutions_coord[min_i * 4 + 1];
-    int y0 = best_solutions_coord[min_i * 4 + 2];
-    int y1 = best_solutions_coord[min_i * 4 + 3];
+    int y0 = min_i / nx;
+    int x0 = min_i % nx;
+    int x1 = best_solutions_coord[min_i * 2 + 0];
+    int y1 = best_solutions_coord[min_i * 2 + 1];
     set_result(x0, x1, y0, y1, nx, ny, sum_from_zero, total_avg, result);
 
     return result;
