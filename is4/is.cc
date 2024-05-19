@@ -29,7 +29,7 @@ double color(int x, int y, int c, int nx, const float *data)
 }
 
 /** O(n^2)*/
-void calculate_total_avg(int ny, int nx, const float *data, double4_t &total_sum)
+void calculate_total_sum(int ny, int nx, const float *data, double4_t &total_sum)
 {
 #pragma omp parallel for
     for (int c = 0; c < C; c++)
@@ -123,7 +123,7 @@ Result segment(int ny, int nx, const float *data)
 
     Result result{0, 0, 0, 0, {0, 0, 0}, {0, 0, 0}};
     double4_t total_sum = {0.0};
-    calculate_total_avg(ny, nx, data, total_sum);
+    calculate_total_sum(ny, nx, data, total_sum);
     vector<double4_t> sum_from_zero(nx * ny);
     calculate_sum_from_zero(ny, nx, data, sum_from_zero);
 
