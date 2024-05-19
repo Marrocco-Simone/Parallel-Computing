@@ -138,6 +138,7 @@ Result segment(int ny, int nx, const float *data)
         int i = x0y0;
         int y0 = x0y0 / nx;
         int x0 = x0y0 % nx;
+        double max_err = 0.0;
 
         for (int y1 = y0; y1 < ny; y1++)
         {
@@ -152,9 +153,11 @@ Result segment(int ny, int nx, const float *data)
 
                 double inv_sq_err = (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points + (outer[0] * outer[0] + outer[1] * outer[1] + outer[2] * outer[2]) / out_points;
 
-                best_solutions[i] = max(best_solutions[i], inv_sq_err);
+                max_err = max(max_err, inv_sq_err);
             }
         }
+
+        best_solutions[i] = max_err;
     }
 
     auto t3 = high_resolution_clock::now();
