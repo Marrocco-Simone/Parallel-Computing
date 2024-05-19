@@ -27,13 +27,13 @@ double color(int x, int y, int c, int nx, const float *data)
 }
 
 /** O(n^2)*/
-void calculate_total_avg(int ny, int nx, const float *data, double4_t &total_avg)
+void calculate_total_avg(int ny, int nx, const float *data, double4_t &total_sum)
 {
 #pragma omp parallel for
     for (int c = 0; c < C; c++)
         for (int x = 0; x < nx; x++)
             for (int y = 0; y < ny; y++)
-                total_avg[c] += color(x, y, c, nx, data);
+                total_sum[c] += color(x, y, c, nx, data);
 }
 
 /** O(n^2) */
@@ -55,28 +55,6 @@ void calculate_sum_from_zero(int ny, int nx, const float *data, vector<double4_t
                 prev_left_up_block = sum_from_zero[id4_t(x - 1, y - 1, nx)];
 
             sum_from_zero[id4_t(x, y, nx)] = (prev_left_block + prev_up_block - prev_left_up_block + point_block);
-        }
-}
-
-/** O(n^2) */
-void calculate_sum_squared_from_zero(int ny, int nx, const float *data, vector<double4_t> &sum_squared_from_zero)
-{
-    for (int x = 0; x < nx; x++)
-        for (int y = 0; y < ny; y++)
-        {
-            double4_t point_block = {color(x, y, 0, nx, data) * color(x, y, 0, nx, data), color(x, y, 1, nx, data) * color(x, y, 1, nx, data), color(x, y, 2, nx, data) * color(x, y, 2, nx, data), 0.0};
-            double4_t prev_left_block = {0.0};
-            double4_t prev_up_block = {0.0};
-            double4_t prev_left_up_block = {0.0};
-
-            if (x != 0)
-                prev_left_block = sum_squared_from_zero[id4_t(x - 1, y, nx)];
-            if (y != 0)
-                prev_up_block = sum_squared_from_zero[id4_t(x, y - 1, nx)];
-            if (x != 0 && y != 0)
-                prev_left_up_block = sum_squared_from_zero[id4_t(x - 1, y - 1, nx)];
-
-            sum_squared_from_zero[id4_t(x, y, nx)] = (prev_left_block + prev_up_block - prev_left_up_block + point_block);
         }
 }
 
@@ -105,50 +83,26 @@ void calculate_avg_in_color(int x0, int x1, int y0, int y1, int nx, vector<doubl
 }
 
 /** O(1) */
-void calculate_avg_out_color(double4_t &inner, double4_t &total_avg, double4_t &outer)
+void calculate_avg_out_color(double4_t &inner, double4_t &total_sum, double4_t &outer)
 {
-    outer = total_avg - inner;
-}
-
-/** O(1) - access all combinations of x1 / y1 / x0-1 / y0-1 */
-void calculate_in_squared_sum(int x0, int x1, int y0, int y1, int nx, vector<double4_t> const &sum_squared_from_zero, double4_t &inner_squared_sums)
-{
-    double4_t point_block = sum_squared_from_zero[id4_t(x1, y1, nx)];
-    double4_t prev_left_block = {0.0};
-    double4_t prev_up_block = {0.0};
-    double4_t prev_left_up_block = {0.0};
-
-    if (x0 != 0 && x1 != 0)
-        prev_left_block = sum_squared_from_zero[id4_t(x0 - 1, y1, nx)];
-    if (y0 != 0 && y1 != 0)
-        prev_up_block = sum_squared_from_zero[id4_t(x1, y0 - 1, nx)];
-    if (x0 != 0 && x1 != 0 && y0 != 0 && y1 != 0)
-        prev_left_up_block = sum_squared_from_zero[id4_t(x0 - 1, y0 - 1, nx)];
-
-    inner_squared_sums = (prev_left_up_block + point_block - prev_up_block - prev_left_block);
+    outer = total_sum - inner;
 }
 
 /** O(1) */
-void calculate_out_squared_sum(double4_t &inner_squared_sums, double4_t &end_sum_squared, double4_t &outer_squared_sums)
+double calculate_in_error(double4_t &inner, int in_points)
 {
-    outer_squared_sums = end_sum_squared - inner_squared_sums;
+    return (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points;
 }
 
 /** O(1) */
-double calculate_in_error(double4_t &inner, double4_t &in_squared_sum, int in_points)
-{
-    return in_squared_sum[0] + in_squared_sum[1] + in_squared_sum[2] - (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]) / in_points;
-}
-
-/** O(1) */
-double calculate_out_error(double4_t &outer, double4_t &out_squared_sum, int in_points, int full_points)
+double calculate_out_error(double4_t &outer, int in_points, int full_points)
 {
     int out_points = full_points - in_points;
-    return calculate_in_error(outer, out_squared_sum, out_points);
+    return calculate_in_error(outer, out_points);
 }
 
 /** O(1) */
-void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double4_t> &sum_from_zero, double4_t &total_avg, Result &result)
+void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vector<double4_t> &sum_from_zero, double4_t &total_sum, Result &result)
 {
     double4_t outer = {0.0};
     double4_t inner = {0.0};
@@ -156,7 +110,7 @@ void set_result(int x0, int x1, int y0, int y1, int nx, int ny, const std::vecto
     int in_points = calculate_in_points(x0, x1, y0, y1);
     int out_points = nx * ny - in_points;
     calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
-    calculate_avg_out_color(inner, total_avg, outer);
+    calculate_avg_out_color(inner, total_sum, outer);
 
     result.x0 = x0;
     result.x1 = x1 + 1;
@@ -179,13 +133,10 @@ This is the function you need to implement. Quick reference:
 Result segment(int ny, int nx, const float *data)
 {
     Result result{0, 0, 0, 0, {0, 0, 0}, {0, 0, 0}};
-    double4_t total_avg = {0.0};
-    calculate_total_avg(ny, nx, data, total_avg);
+    double4_t total_sum = {0.0};
+    calculate_total_avg(ny, nx, data, total_sum);
     vector<double4_t> sum_from_zero(nx * ny);
     calculate_sum_from_zero(ny, nx, data, sum_from_zero);
-    vector<double4_t> sum_squared_from_zero(nx * ny);
-    calculate_sum_squared_from_zero(ny, nx, data, sum_squared_from_zero);
-    double4_t end_sum_squared = sum_squared_from_zero[id4_t(nx - 1, ny - 1, nx)];
 
     vector<int> best_solutions_coord(nx * ny * 2);
     vector<double> best_solutions(nx * ny);
@@ -207,14 +158,9 @@ Result segment(int ny, int nx, const float *data)
                 double4_t outer = {0.0};
                 double4_t inner = {0.0};
                 calculate_avg_in_color(x0, x1, y0, y1, nx, sum_from_zero, inner);
-                calculate_avg_out_color(inner, total_avg, outer);
+                calculate_avg_out_color(inner, total_sum, outer);
 
-                double4_t outer_squared_sums = {0.0};
-                double4_t inner_squared_sums = {0.0};
-                calculate_in_squared_sum(x0, x1, y0, y1, nx, sum_squared_from_zero, inner_squared_sums);
-                calculate_out_squared_sum(inner_squared_sums, end_sum_squared, outer_squared_sums);
-
-                double sq_err = calculate_in_error(inner, inner_squared_sums, in_points) + calculate_out_error(outer, outer_squared_sums, in_points, nx * ny);
+                double sq_err = (-1) * (calculate_in_error(inner, in_points) + calculate_out_error(outer, in_points, nx * ny));
 
                 if (sq_err < min_err)
                 {
@@ -236,7 +182,7 @@ Result segment(int ny, int nx, const float *data)
     int x0 = min_i % nx;
     int x1 = best_solutions_coord[min_i * 2 + 0];
     int y1 = best_solutions_coord[min_i * 2 + 1];
-    set_result(x0, x1, y0, y1, nx, ny, sum_from_zero, total_avg, result);
+    set_result(x0, x1, y0, y1, nx, ny, sum_from_zero, total_sum, result);
 
     return result;
 }
