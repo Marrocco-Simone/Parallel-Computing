@@ -50,8 +50,6 @@ void psort(int n, data_t *data)
     int min_sort = n / MIN_SORT;
     if (min_sort < 2)
         min_sort = 2;
-    if (n <= min_sort)
-        min_sort = 1;
 
     int low = 0;
     int high = n - 1;
