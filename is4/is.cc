@@ -154,10 +154,7 @@ void calculate_out_squared_sum(double4_t &inner, double4_t &end_sum_squared, dou
 /** O(1) */
 double calculate_in_error(double4_t &inner, double4_t &in_squared_sum, int in_points)
 {
-    double sum0 = in_squared_sum[0] - in_points * inner[0] * inner[0];
-    double sum1 = in_squared_sum[1] - in_points * inner[1] * inner[1];
-    double sum2 = in_squared_sum[2] - in_points * inner[2] * inner[2];
-    return sum0 + sum1 + sum2;
+    return in_squared_sum[0] + in_squared_sum[1] + in_squared_sum[2] - in_points * (inner[0] * inner[0] + inner[1] * inner[1] + inner[2] * inner[2]);
 }
 
 /** O(1) */
