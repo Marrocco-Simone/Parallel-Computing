@@ -50,7 +50,7 @@ __global__ void calculate_result(int nx, int ny, float *result, float *normalize
   int je = min(js + STEPS, ny);
   int ie = min(is + STEPS, ny);
 
-  if (is >= ny || js >= ny || ie < js)
+  if (ie < js)
     return;
 
   for (int j = js; j < je; j++)
