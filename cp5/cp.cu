@@ -45,30 +45,21 @@ __global__ void normalize_rows(int ny, int nx, float *data, float *normalized)
 
 __global__ void calculate_result(int nx, int ny, float *result, float *normalized)
 {
-  int js = blockIdx.x * STEPS;
-  int is = threadIdx.x * STEPS;
-  int je = min(js + STEPS, ny);
-  int ie = min(is + STEPS, ny);
+  int i = threadIdx.x + blockIdx.x * blockDim.x;
+  int j = threadIdx.y + blockIdx.y * blockDim.y;
 
-  if (is >= ny || js >= ny)
+  if (i >= ny || j >= ny)
     return;
-  if (ie < js)
+  if (i < j)
   {
-    for (int j = js; j < je; j++)
-      for (int i = is; i < ie; i++)
-        result[i + j * ny] = 0.0;
-    return;
+    result[i + j * ny] = 0.0;
   }
 
-  for (int j = js; j < je; j++)
-    for (int i = is; i < ie; i++)
-    {
-      float sum = 0.0;
-      for (int k = 0; k < nx; ++k)
-        sum += normalized[k + i * nx] * normalized[k + j * nx];
+  float sum = 0.0;
+  for (int k = 0; k < nx; ++k)
+    sum += normalized[k + i * nx] * normalized[k + j * nx];
 
-      result[i + j * ny] = sum;
-    }
+  result[i + j * ny] = sum;
 }
 
 /*
@@ -95,7 +86,9 @@ void correlate(int ny, int nx, const float *data, float *result)
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
 
-  calculate_result<<<nny / STEPS, nny / STEPS>>>(nx, ny, resultGPU, normalizedGPU);
+  dim3 dimBlock(STEPS, STEPS);
+  dim3 dimGrid(nny / STEPS, nny / STEPS);
+  calculate_result<<<dimGrid, dimBlock>>>(nx, ny, resultGPU, normalizedGPU);
   CHECK(cudaGetLastError());
 
   CHECK(cudaMemcpy(result, resultGPU, ny * ny * sizeof(float), cudaMemcpyDeviceToHost));
