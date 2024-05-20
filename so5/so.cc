@@ -9,19 +9,26 @@ typedef unsigned long long data_t;
 
 int partition(data_t *data, int low, int high)
 {
-    data_t pivot = data[high];
-    int i = low;
+    data_t pivot = data[low];
+    int i = low - 1, j = high + 1;
 
-    for (int j = low; j <= high; j++)
+    while (true)
     {
-        if (data[j] < pivot)
+        do
         {
-            swap(data[i], data[j]);
             i++;
-        }
+        } while (data[i] < pivot);
+
+        do
+        {
+            j--;
+        } while (data[j] > pivot);
+
+        if (i >= j)
+            return j;
+
+        swap(data[i], data[j]);
     }
-    swap(data[i], data[high]);
-    return i;
 }
 
 void quick_sort(data_t *data, int low, int high, int min_sort)
@@ -35,7 +42,7 @@ void quick_sort(data_t *data, int low, int high, int min_sort)
     int pi = partition(data, low, high);
 
 #pragma omp task
-    quick_sort(data, low, pi - 1, min_sort);
+    quick_sort(data, low, pi, min_sort);
 #pragma omp task
     quick_sort(data, pi + 1, high, min_sort);
 }
