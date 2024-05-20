@@ -3,8 +3,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <cuda_runtime.h>
+#include <chrono>
 #define STEPS 16
 using namespace std;
+
+/*
+  ! test command
+  ./grading test-asan; ./grading test-memcheck-initcheck --remote; ./grading benchmark --remote benchmarks/4b.txt
+*/
 
 static inline void check(cudaError_t err, const char *context)
 {
@@ -72,6 +78,13 @@ This is the function you need to implement. Quick reference:
 */
 void correlate(int ny, int nx, const float *data, float *result)
 {
+  using std::chrono::duration;
+  using std::chrono::duration_cast;
+  using std::chrono::high_resolution_clock;
+  using std::chrono::milliseconds;
+
+  auto t1 = high_resolution_clock::now();
+
   int nnx = nx + STEPS - nx % STEPS;
   int nny = ny + STEPS - ny % STEPS;
 
@@ -82,6 +95,8 @@ void correlate(int ny, int nx, const float *data, float *result)
   float *normalizedGPU = NULL;
   CHECK(cudaMalloc((void **)&normalizedGPU, nnx * nny * sizeof(float)));
   normalize_rows<<<nny / STEPS, STEPS>>>(ny, nx, dataGPU, normalizedGPU);
+
+  auto t2 = high_resolution_clock::now();
 
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
@@ -95,4 +110,9 @@ void correlate(int ny, int nx, const float *data, float *result)
   CHECK(cudaFree(dataGPU));
   CHECK(cudaFree(normalizedGPU));
   CHECK(cudaFree(resultGPU));
+
+  auto t3 = high_resolution_clock::now();
+
+  printf("Initialization: %ld ms\n", duration_cast<milliseconds>(t2 - t1).count());
+  printf("Main loop: %ld ms\n", duration_cast<milliseconds>(t3 - t2).count());
 }
