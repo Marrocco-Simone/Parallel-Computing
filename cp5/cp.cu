@@ -4,7 +4,8 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include <chrono>
-#define STEPS 64
+#define STEP 8
+#define PADDING 64
 using namespace std;
 
 /*
@@ -26,7 +27,7 @@ static inline void check(cudaError_t err, const char *context)
 
 __global__ void normalize_rows(int ny, int nx, int nnx, float *data, float *normalized)
 {
-  int j = blockIdx.x * STEPS + threadIdx.x;
+  int j = blockIdx.x * PADDING + threadIdx.x;
   if (j >= ny)
     return;
 
@@ -51,14 +52,14 @@ __global__ void normalize_rows(int ny, int nx, int nnx, float *data, float *norm
 
 __global__ void calculate_result(int nx, int nnx, int nny, float *result, float *normalized)
 {
-  int js = (threadIdx.x + blockIdx.x * blockDim.x) * 8;
-  int is = (threadIdx.y + blockIdx.y * blockDim.y) * 8;
+  int js = (threadIdx.x + blockIdx.x * blockDim.x) * STEP;
+  int is = (threadIdx.y + blockIdx.y * blockDim.y) * STEP;
 
   if (is < js)
     return;
 
-  for (int j = js; j < js + 8; j++)
-    for (int i = is; i < is + 8; i++)
+  for (int j = js; j < js + STEP; j++)
+    for (int i = is; i < is + STEP; i++)
     {
       float sum = 0.0;
       for (int k = 0; k < nx; ++k)
@@ -85,8 +86,8 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   auto t1 = high_resolution_clock::now();
 
-  int nnx = nx + STEPS - nx % STEPS;
-  int nny = ny + STEPS - ny % STEPS;
+  int nnx = nx + PADDING - nx % PADDING;
+  int nny = ny + PADDING - ny % PADDING;
 
   float *dataGPU = NULL;
   CHECK(cudaMalloc((void **)&dataGPU, nx * ny * sizeof(float)));
@@ -95,7 +96,7 @@ void correlate(int ny, int nx, const float *data, float *result)
   float *normalizedGPU = NULL;
   CHECK(cudaMalloc((void **)&normalizedGPU, nnx * nny * sizeof(float)));
   CHECK(cudaMemset(normalizedGPU, 0, nnx * nny * sizeof(float)));
-  normalize_rows<<<nny / STEPS, STEPS>>>(ny, nx, nnx, dataGPU, normalizedGPU);
+  normalize_rows<<<nny / PADDING, PADDING>>>(ny, nx, nnx, dataGPU, normalizedGPU);
 
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, nny * nny * sizeof(float)));
@@ -103,8 +104,8 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   auto t2 = high_resolution_clock::now();
 
-  dim3 dimBlock(8, 8);
-  dim3 dimGrid(nny / STEPS, nny / STEPS);
+  dim3 dimBlock(STEP, STEP);
+  dim3 dimGrid(nny / PADDING, nny / PADDING);
   calculate_result<<<dimGrid, dimBlock>>>(nx, nnx, nny, resultGPU, normalizedGPU);
   CHECK(cudaGetLastError());
 
