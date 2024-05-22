@@ -56,13 +56,8 @@ __global__ void calculate_result(int nx, int ny, float *result, float *normalize
   int je = min(js + 8, ny);
   int ie = min(is + 8, ny);
 
-  if (ie < js)
-  {
-    for (int j = js; j < je; j++)
-      for (int i = is; i < ie; i++)
-        result[i + j * ny] = 0.0;
+  if (is < js)
     return;
-  }
 
   for (int j = js; j < je; j++)
     for (int i = is; i < ie; i++)
@@ -107,6 +102,7 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
+  CHECK(cudaMemset(resultGPU, 0, ny * ny * sizeof(float)));
 
   dim3 dimBlock(8, 8);
   dim3 dimGrid(nny / STEPS, nny / STEPS);
