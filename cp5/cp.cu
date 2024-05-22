@@ -94,12 +94,12 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   float *normalizedGPU = NULL;
   CHECK(cudaMalloc((void **)&normalizedGPU, nnx * nny * sizeof(float)));
-  CHECK(cudaMemset(normalizedGPU, 0.0, nnx * nny * sizeof(float)));
+  CHECK(cudaMemset(normalizedGPU, 0, nnx * nny * sizeof(float)));
   normalize_rows<<<nny / STEPS, STEPS>>>(ny, nx, nnx, dataGPU, normalizedGPU);
 
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, nny * nny * sizeof(float)));
-  CHECK(cudaMemset(resultGPU, 0.0, nny * nny * sizeof(float)));
+  CHECK(cudaMemset(resultGPU, 0, nny * nny * sizeof(float)));
 
   auto t2 = high_resolution_clock::now();
 
