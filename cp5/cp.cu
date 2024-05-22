@@ -56,8 +56,6 @@ __global__ void calculate_result(int nx, int ny, float *result, float *normalize
   int je = min(js + 8, ny);
   int ie = min(is + 8, ny);
 
-  if (is >= ny || js >= ny)
-    return;
   if (ie < js)
   {
     for (int j = js; j < je; j++)
