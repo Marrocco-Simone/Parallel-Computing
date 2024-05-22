@@ -114,6 +114,7 @@ void correlate(int ny, int nx, const float *data, float *result)
     for (int i = 0; i < ny; i++)
       result[i + j * ny] = result_padded[i + j * nny];
 
+  free(result_padded);
   CHECK(cudaFree(dataGPU));
   CHECK(cudaFree(normalizedGPU));
   CHECK(cudaFree(resultGPU));
