@@ -10,7 +10,7 @@ using namespace std;
 
 /*
   ! test command
-  ./grading test-plain; ./grading test-asan; ./grading test-memcheck-initcheck --remote; ./grading benchmark --remote benchmarks/4b.txt
+  ./grading test-plain; ./grading test-asan; ./grading test-memcheck-initcheck --remote; ./grading benchmark-cache --remote benchmarks/4b.txt
 */
 
 static inline void check(cudaError_t err, const char *context)
