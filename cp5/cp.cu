@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include <chrono>
-#define STEPS 16
+#define STEPS 64
 using namespace std;
 
 /*
@@ -51,21 +51,30 @@ __global__ void normalize_rows(int ny, int nx, float *data, float *normalized)
 
 __global__ void calculate_result(int nx, int ny, float *result, float *normalized)
 {
-  int i = threadIdx.x + blockIdx.x * blockDim.x;
-  int j = threadIdx.y + blockIdx.y * blockDim.y;
+  int js = (threadIdx.x + blockIdx.x * blockDim.x) * 8;
+  int is = (threadIdx.y + blockIdx.y * blockDim.y) * 8;
+  int je = min(js + 8, ny);
+  int ie = min(is + 8, ny);
 
-  if (i >= ny || j >= ny)
+  if (is >= ny || js >= ny)
     return;
-  if (i < j)
+  if (ie < js)
   {
-    result[i + j * ny] = 0.0;
+    for (int j = js; j < je; j++)
+      for (int i = is; i < ie; i++)
+        result[i + j * ny] = 0.0;
+    return;
   }
 
-  float sum = 0.0;
-  for (int k = 0; k < nx; ++k)
-    sum += normalized[k + i * nx] * normalized[k + j * nx];
+  for (int j = js; j < je; j++)
+    for (int i = is; i < ie; i++)
+    {
+      float sum = 0.0;
+      for (int k = 0; k < nx; ++k)
+        sum += normalized[k + i * nx] * normalized[k + j * nx];
 
-  result[i + j * ny] = sum;
+      result[i + j * ny] = sum;
+    }
 }
 
 /*
@@ -101,7 +110,7 @@ void correlate(int ny, int nx, const float *data, float *result)
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
 
-  dim3 dimBlock(STEPS, STEPS);
+  dim3 dimBlock(8, 8);
   dim3 dimGrid(nny / STEPS, nny / STEPS);
   calculate_result<<<dimGrid, dimBlock>>>(nx, ny, resultGPU, normalizedGPU);
   CHECK(cudaGetLastError());
