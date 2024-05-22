@@ -24,7 +24,7 @@ static inline void check(cudaError_t err, const char *context)
 
 #define CHECK(x) check(x, #x)
 
-__global__ void normalize_rows(int ny, int nx, float *data, float *normalized)
+__global__ void normalize_rows(int ny, int nx, int nnx, float *data, float *normalized)
 {
   int j = blockIdx.x * STEPS + threadIdx.x;
   if (j >= ny)
@@ -38,35 +38,33 @@ __global__ void normalize_rows(int ny, int nx, float *data, float *normalized)
 
   for (int i = 0; i < nx; i++)
   {
-    normalized[i + j * nx] = (data[i + j * nx] - mean);
-    magnitude += normalized[i + j * nx] * normalized[i + j * nx];
+    normalized[i + j * nnx] = (data[i + j * nx] - mean);
+    magnitude += normalized[i + j * nnx] * normalized[i + j * nnx];
   }
   magnitude = sqrtf(magnitude);
 
   for (int i = 0; i < nx; i++)
   {
-    normalized[i + j * nx] /= magnitude;
+    normalized[i + j * nnx] /= magnitude;
   }
 }
 
-__global__ void calculate_result(int nx, int ny, float *result, float *normalized)
+__global__ void calculate_result(int nx, int nnx, int nny, float *result, float *normalized)
 {
   int js = (threadIdx.x + blockIdx.x * blockDim.x) * 8;
   int is = (threadIdx.y + blockIdx.y * blockDim.y) * 8;
-  int je = min(js + 8, ny);
-  int ie = min(is + 8, ny);
 
   if (is < js)
     return;
 
-  for (int j = js; j < je; j++)
-    for (int i = is; i < ie; i++)
+  for (int j = js; j < js + 8; j++)
+    for (int i = is; i < is + 8; i++)
     {
       float sum = 0.0;
       for (int k = 0; k < nx; ++k)
-        sum += normalized[k + i * nx] * normalized[k + j * nx];
+        sum += normalized[k + i * nnx] * normalized[k + j * nnx];
 
-      result[i + j * ny] = sum;
+      result[i + j * nny] = sum;
     }
 }
 
@@ -96,20 +94,26 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   float *normalizedGPU = NULL;
   CHECK(cudaMalloc((void **)&normalizedGPU, nnx * nny * sizeof(float)));
-  normalize_rows<<<nny / STEPS, STEPS>>>(ny, nx, dataGPU, normalizedGPU);
+  CHECK(cudaMemset(normalizedGPU, 0.0, nnx * nny * sizeof(float)));
+  normalize_rows<<<nny / STEPS, STEPS>>>(ny, nx, nnx, dataGPU, normalizedGPU);
+
+  float *resultGPU = NULL;
+  CHECK(cudaMalloc((void **)&resultGPU, nny * nny * sizeof(float)));
+  CHECK(cudaMemset(resultGPU, 0.0, nny * nny * sizeof(float)));
 
   auto t2 = high_resolution_clock::now();
 
-  float *resultGPU = NULL;
-  CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
-  CHECK(cudaMemset(resultGPU, 0, ny * ny * sizeof(float)));
-
   dim3 dimBlock(8, 8);
   dim3 dimGrid(nny / STEPS, nny / STEPS);
-  calculate_result<<<dimGrid, dimBlock>>>(nx, ny, resultGPU, normalizedGPU);
+  calculate_result<<<dimGrid, dimBlock>>>(nx, nnx, nny, resultGPU, normalizedGPU);
   CHECK(cudaGetLastError());
 
-  CHECK(cudaMemcpy(result, resultGPU, ny * ny * sizeof(float), cudaMemcpyDeviceToHost));
+  float *result_padded = (float *)malloc(nny * nny * sizeof(float));
+  CHECK(cudaMemcpy(result_padded, resultGPU, nny * nny * sizeof(float), cudaMemcpyDeviceToHost));
+  for (int j = 0; j < ny; j++)
+    for (int i = 0; i < ny; i++)
+      result[i + j * ny] = result_padded[i + j * nny];
+
   CHECK(cudaFree(dataGPU));
   CHECK(cudaFree(normalizedGPU));
   CHECK(cudaFree(resultGPU));
