@@ -69,16 +69,6 @@ __global__ void calculate_result(int nx, int nnx, int nny, float *result, float 
   for (int j = js; j < js + STEP; j++)
     for (int i = is; i < is + STEP; i++)
       result[i + j * nny] = sums[i - is][j - js];
-
-  // for (int j = js; j < js + STEP; j++)
-  //   for (int i = is; i < is + STEP; i++)
-  //   {
-  //     float sum = 0.0;
-  //     for (int k = 0; k < nx; ++k)
-  //       sum += normalized[k + i * nnx] * normalized[k + j * nnx];
-
-  //     result[i + j * nny] = sum;
-  //   }
 }
 
 /*
