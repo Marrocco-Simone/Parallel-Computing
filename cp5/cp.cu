@@ -58,15 +58,27 @@ __global__ void calculate_result(int nx, int nnx, int nny, float *result, float 
   if (is < js)
     return;
 
+  float sums[STEP][STEP] = {0.0};
+  for (int k = 0; k < nx; ++k)
+  {
+    for (int j = js; j < js + STEP; j++)
+      for (int i = is; i < is + STEP; i++)
+        sums[i - is][j - js] += normalized[k + i * nnx] * normalized[k + j * nnx];
+  }
+
   for (int j = js; j < js + STEP; j++)
     for (int i = is; i < is + STEP; i++)
-    {
-      float sum = 0.0;
-      for (int k = 0; k < nx; ++k)
-        sum += normalized[k + i * nnx] * normalized[k + j * nnx];
+      result[i + j * nny] = sums[i - is][j - js];
 
-      result[i + j * nny] = sum;
-    }
+  // for (int j = js; j < js + STEP; j++)
+  //   for (int i = is; i < is + STEP; i++)
+  //   {
+  //     float sum = 0.0;
+  //     for (int k = 0; k < nx; ++k)
+  //       sum += normalized[k + i * nnx] * normalized[k + j * nnx];
+
+  //     result[i + j * nny] = sum;
+  //   }
 }
 
 /*
