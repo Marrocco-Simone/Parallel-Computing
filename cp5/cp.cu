@@ -4,8 +4,8 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include <chrono>
-#define STEP 8
-#define PADDING 64
+#define STEP 12
+#define PADDING 144
 using namespace std;
 
 /*
