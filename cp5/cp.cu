@@ -52,8 +52,9 @@ __global__ void normalize_rows(int ny, int nx, int nnx, float *data, float *norm
 
 __global__ void calculate_result(int nx, int nnx, int nny, float *result, float *normalized)
 {
-  int js = (threadIdx.x + blockIdx.x * blockDim.x) * STEP;
-  int is = (threadIdx.y + blockIdx.y * blockDim.y) * STEP;
+  int is = (threadIdx.x + blockIdx.x * blockDim.x) * STEP;
+  int js = (threadIdx.y + blockIdx.y * blockDim.y) * STEP;
+  // printf("blockIdx.x: %d, blockIdx.y: %d, threadIdx.x: %d, threadIdx.y: %d, js: %d, is: %d\n", blockIdx.x, blockIdx.y, threadIdx.x, threadIdx.y, js, is);
 
   if (is < js)
     return;
