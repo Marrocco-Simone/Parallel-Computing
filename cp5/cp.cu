@@ -61,14 +61,14 @@ __global__ void calculate_result(int nx, int ny, int nny, float *result, float *
 
   float sums[STEP][STEP] = {0.0};
   for (int k = 0; k < nx; ++k)
-    for (int j = js; j < js + STEP; j++)
-      for (int i = is; i < is + STEP; i++)
-        sums[i - is][j - js] += normalizedTransposed[i + k * nny] * normalizedTransposed[j + k * nny];
+    for (int j = 0; j < STEP; j++)
+      for (int i = 0; i < STEP; i++)
+        sums[i][j] += normalizedTransposed[i + is + k * nny] * normalizedTransposed[j + js + k * nny];
 
-  for (int j = js; j < js + STEP; j++)
-    for (int i = is; i < is + STEP; i++)
-      if (i < ny && j < ny)
-        result[i + j * ny] = sums[i - is][j - js];
+  for (int j = 0; j < STEP; j++)
+    for (int i = 0; i < STEP; i++)
+      if (i + is < ny && j + js < ny)
+        result[i + is + (j + js) * ny] = sums[i][j];
 }
 
 /*
