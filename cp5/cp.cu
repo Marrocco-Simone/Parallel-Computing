@@ -25,7 +25,7 @@ static inline void check(cudaError_t err, const char *context)
 
 #define CHECK(x) check(x, #x)
 
-__global__ void normalize_rows(int ny, int nx, int nnx, float *data, float *normalized)
+__global__ void normalize_rows(int ny, int nx, int nny, float *data, float *normalizedTransposed)
 {
   int j = blockIdx.x * PADDING + threadIdx.x;
   if (j >= ny)
@@ -39,18 +39,18 @@ __global__ void normalize_rows(int ny, int nx, int nnx, float *data, float *norm
 
   for (int k = 0; k < nx; k++)
   {
-    normalized[k + j * nnx] = (data[k + j * nx] - mean);
-    magnitude += normalized[k + j * nnx] * normalized[k + j * nnx];
+    normalizedTransposed[j + k * nny] = (data[k + j * nx] - mean);
+    magnitude += normalizedTransposed[j + k * nny] * normalizedTransposed[j + k * nny];
   }
   magnitude = sqrtf(magnitude);
 
   for (int k = 0; k < nx; k++)
   {
-    normalized[k + j * nnx] /= magnitude;
+    normalizedTransposed[j + k * nny] /= magnitude;
   }
 }
 
-__global__ void calculate_result(int nx, int nnx, int nny, float *result, float *normalized)
+__global__ void calculate_result(int nx, int nny, float *result, float *normalizedTransposed)
 {
   int is = (threadIdx.x + blockIdx.x * blockDim.x) * STEP;
   int js = (threadIdx.y + blockIdx.y * blockDim.y) * STEP;
@@ -64,7 +64,7 @@ __global__ void calculate_result(int nx, int nnx, int nny, float *result, float 
   {
     for (int j = js; j < js + STEP; j++)
       for (int i = is; i < is + STEP; i++)
-        sums[i - is][j - js] += normalized[k + i * nnx] * normalized[k + j * nnx];
+        sums[i - is][j - js] += normalizedTransposed[i + k * nny] * normalizedTransposed[j + k * nny];
   }
 
   for (int j = js; j < js + STEP; j++)
@@ -96,10 +96,10 @@ void correlate(int ny, int nx, const float *data, float *result)
   CHECK(cudaMalloc((void **)&dataGPU, nx * ny * sizeof(float)));
   CHECK(cudaMemcpy(dataGPU, data, nx * ny * sizeof(float), cudaMemcpyHostToDevice));
 
-  float *normalizedGPU = NULL;
-  CHECK(cudaMalloc((void **)&normalizedGPU, nnx * nny * sizeof(float)));
-  CHECK(cudaMemset(normalizedGPU, 0, nnx * nny * sizeof(float)));
-  normalize_rows<<<nny / PADDING, PADDING>>>(ny, nx, nnx, dataGPU, normalizedGPU);
+  float *normalizedTransposedGPU = NULL;
+  CHECK(cudaMalloc((void **)&normalizedTransposedGPU, nnx * nny * sizeof(float)));
+  CHECK(cudaMemset(normalizedTransposedGPU, 0, nnx * nny * sizeof(float)));
+  normalize_rows<<<nny / PADDING, PADDING>>>(ny, nx, nny, dataGPU, normalizedTransposedGPU);
 
   float *resultGPU = NULL;
   CHECK(cudaMalloc((void **)&resultGPU, nny * nny * sizeof(float)));
@@ -109,7 +109,7 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   dim3 dimBlock(STEP, STEP);
   dim3 dimGrid(nny / PADDING, nny / PADDING);
-  calculate_result<<<dimGrid, dimBlock>>>(nx, nnx, nny, resultGPU, normalizedGPU);
+  calculate_result<<<dimGrid, dimBlock>>>(nx, nny, resultGPU, normalizedTransposedGPU);
   CHECK(cudaGetLastError());
 
   float *result_padded = (float *)malloc(nny * nny * sizeof(float));
@@ -120,7 +120,7 @@ void correlate(int ny, int nx, const float *data, float *result)
 
   free(result_padded);
   CHECK(cudaFree(dataGPU));
-  CHECK(cudaFree(normalizedGPU));
+  CHECK(cudaFree(normalizedTransposedGPU));
   CHECK(cudaFree(resultGPU));
 
   auto t3 = high_resolution_clock::now();
