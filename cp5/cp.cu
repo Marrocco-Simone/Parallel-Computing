@@ -50,7 +50,7 @@ __global__ void normalize_rows(int ny, int nx, int nny, float *data, float *norm
   }
 }
 
-__global__ void calculate_result(int nx, int nny, float *result, float *normalizedTransposed)
+__global__ void calculate_result(int nx, int ny, int nny, float *result, float *normalizedTransposed)
 {
   int is = (threadIdx.x + blockIdx.x * blockDim.x) * STEP;
   int js = (threadIdx.y + blockIdx.y * blockDim.y) * STEP;
@@ -61,15 +61,14 @@ __global__ void calculate_result(int nx, int nny, float *result, float *normaliz
 
   float sums[STEP][STEP] = {0.0};
   for (int k = 0; k < nx; ++k)
-  {
     for (int j = js; j < js + STEP; j++)
       for (int i = is; i < is + STEP; i++)
         sums[i - is][j - js] += normalizedTransposed[i + k * nny] * normalizedTransposed[j + k * nny];
-  }
 
   for (int j = js; j < js + STEP; j++)
     for (int i = is; i < is + STEP; i++)
-      result[i + j * nny] = sums[i - is][j - js];
+      if (i < ny && j < ny)
+        result[i + j * ny] = sums[i - is][j - js];
 }
 
 /*
@@ -102,23 +101,18 @@ void correlate(int ny, int nx, const float *data, float *result)
   normalize_rows<<<nny / PADDING, PADDING>>>(ny, nx, nny, dataGPU, normalizedTransposedGPU);
 
   float *resultGPU = NULL;
-  CHECK(cudaMalloc((void **)&resultGPU, nny * nny * sizeof(float)));
-  CHECK(cudaMemset(resultGPU, 0, nny * nny * sizeof(float)));
+  CHECK(cudaMalloc((void **)&resultGPU, ny * ny * sizeof(float)));
+  CHECK(cudaMemset(resultGPU, 0, ny * ny * sizeof(float)));
 
   auto t2 = high_resolution_clock::now();
 
   dim3 dimBlock(STEP, STEP);
   dim3 dimGrid(nny / PADDING, nny / PADDING);
-  calculate_result<<<dimGrid, dimBlock>>>(nx, nny, resultGPU, normalizedTransposedGPU);
+  calculate_result<<<dimGrid, dimBlock>>>(nx, ny, nny, resultGPU, normalizedTransposedGPU);
   CHECK(cudaGetLastError());
 
-  float *result_padded = (float *)malloc(nny * nny * sizeof(float));
-  CHECK(cudaMemcpy(result_padded, resultGPU, nny * nny * sizeof(float), cudaMemcpyDeviceToHost));
-  for (int j = 0; j < ny; j++)
-    for (int i = 0; i < ny; i++)
-      result[i + j * ny] = result_padded[i + j * nny];
+  CHECK(cudaMemcpy(result, resultGPU, ny * ny * sizeof(float), cudaMemcpyDeviceToHost));
 
-  free(result_padded);
   CHECK(cudaFree(dataGPU));
   CHECK(cudaFree(normalizedTransposedGPU));
   CHECK(cudaFree(resultGPU));
