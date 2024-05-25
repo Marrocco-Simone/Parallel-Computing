@@ -34,19 +34,19 @@ __global__ void normalize_rows(int ny, int nx, int nnx, float *data, float *norm
   float mean = 0.0;
   float magnitude = 0.0;
 
-  for (int i = 0; i < nx; i++)
-    mean += data[i + j * nx] / nx;
+  for (int k = 0; k < nx; k++)
+    mean += data[k + j * nx] / nx;
 
-  for (int i = 0; i < nx; i++)
+  for (int k = 0; k < nx; k++)
   {
-    normalized[i + j * nnx] = (data[i + j * nx] - mean);
-    magnitude += normalized[i + j * nnx] * normalized[i + j * nnx];
+    normalized[k + j * nnx] = (data[k + j * nx] - mean);
+    magnitude += normalized[k + j * nnx] * normalized[k + j * nnx];
   }
   magnitude = sqrtf(magnitude);
 
-  for (int i = 0; i < nx; i++)
+  for (int k = 0; k < nx; k++)
   {
-    normalized[i + j * nnx] /= magnitude;
+    normalized[k + j * nnx] /= magnitude;
   }
 }
 
